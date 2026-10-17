@@ -462,11 +462,12 @@ function DensityPicker({ book, s, ai, onChange }: { book: Book; s: EditionSettin
   return (
     <div className="field">
       <label className="label" htmlFor="density">Image density</label>
-      <input id="density" className="range" type="range" min={0} max={tiers.length - 1} step={1} value={idx}
-        onChange={(e) => onChange(tiers[Number(e.target.value)].id)}
+      {/* Tiers run most → fewest pictures; the slider is flipped so sliding right means more pictures. */}
+      <input id="density" className="range" type="range" min={0} max={tiers.length - 1} step={1} value={tiers.length - 1 - idx}
+        onChange={(e) => onChange(tiers[tiers.length - 1 - Number(e.target.value)].id)}
         aria-valuetext={`${cur.label}, about ${cur.count} pictures, about ${money(cur.est.total)} and ${fmtMinutes(cur.est.minutes)} for the full book`} />
       <div className="row small muted" style={{ justifyContent: 'space-between' }}>
-        <span>More pictures</span><span>Fewer pictures</span>
+        <span>Fewer pictures</span><span>More pictures</span>
       </div>
       <div className="density-readout" aria-live="polite">
         <div>
