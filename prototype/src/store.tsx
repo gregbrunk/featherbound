@@ -42,10 +42,10 @@ function save(key: string, value: unknown) {
   }
 }
 
-// API keys belong to the person who adds them; runs they start are billed to their keys.
+// Each account has its own private library, settings and API keys. Nothing is shared between accounts.
 // The prototype only keeps a masked hint in memory and never stores or sends the key itself.
 export type SavedKey = { hint: string; added: string; status: 'ok' | 'checking' };
-export type AiSettings = AiChoice & { keys: Partial<Record<Provider, SavedKey>>; shareWithFamily: boolean };
+export type AiSettings = AiChoice & { keys: Partial<Record<Provider, SavedKey>> };
 
 type Toast = { id: number; text: string; pose: TuftPose };
 
@@ -54,7 +54,7 @@ type Store = {
   series: Series[];
   editions: Edition[];
   progress: Record<string, Progress>;
-  approved: { email: string; owner?: boolean; added: string }[];
+  approved: { email: string; admin?: boolean; added: string }[];
   pin: string;
   prefs: ViewPrefs;
   lock: { editionId: string; bookId: string } | null;
@@ -85,7 +85,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [series, setSeries] = useState<Series[]>(SERIES);
   const [editions, setEditions] = useState<Edition[]>(EDITIONS);
   const [progress, setProgressState] = useState<Record<string, Progress>>(PROGRESS);
-  const [approved, setApproved] = useState<Store['approved']>([{ email: 'greg.brunk@gmail.com', owner: true, added: '2026-10-17' }]);
+  const [approved, setApproved] = useState<Store['approved']>([{ email: 'greg.brunk@gmail.com', admin: true, added: '2026-10-17' }]);
   const [pin, setPin] = useState('1234');
   const [prefs, setPrefsState] = useState<ViewPrefs>(() => load('fb.prefs', DEFAULT_PREFS));
   const [lock, setLockState] = useState<Store['lock']>(() => {
@@ -97,9 +97,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   });
   const [aiChoice, setAiChoice] = useState<AiChoice>(() => load('fb.models', DEFAULT_AI));
-  const [aiKeys, setAiKeys] = useState<Pick<AiSettings, 'keys' | 'shareWithFamily'>>({
+  const [aiKeys, setAiKeys] = useState<Pick<AiSettings, 'keys'>>({
     keys: { gateway: { hint: '••••3f9a', added: '2026-10-17', status: 'ok' } },
-    shareWithFamily: false,
   });
   const ai = useMemo<AiSettings>(() => ({ ...aiChoice, ...aiKeys }), [aiChoice, aiKeys]);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -117,9 +116,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const store = useMemo<Store>(
     () => ({
       books, series, editions, progress, approved, pin, prefs, lock, ai,
-      setAi: ({ text, images, keys, shareWithFamily }) => {
+      setAi: ({ text, images, keys }) => {
         if (text || images) setAiChoice((c) => ({ text: text ?? c.text, images: images ?? c.images }));
-        if (keys || shareWithFamily !== undefined) setAiKeys((k) => ({ keys: keys ?? k.keys, shareWithFamily: shareWithFamily ?? k.shareWithFamily }));
+        if (keys) setAiKeys({ keys });
       },
       setPrefs: (p) => setPrefsState((prev) => ({ ...prev, ...p })),
       updateBook: (id, patch) => setBooks((bs) => bs.map((b) => (b.id === id ? { ...b, ...patch } : b))),
@@ -151,7 +150,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setCurrentVersion: (id, number) => setEditions((es) => es.map((e) => (e.id === id ? { ...e, currentVersion: number } : e))),
       setProgress: (key, p) => setProgressState((pr) => ({ ...pr, [key]: p })),
       addEmail: (email) => setApproved((a) => (a.some((x) => x.email === email) ? a : [...a, { email, added: '2026-10-17' }])),
-      removeEmail: (email) => setApproved((a) => a.filter((x) => x.email !== email || x.owner)),
+      removeEmail: (email) => setApproved((a) => a.filter((x) => x.email !== email || x.admin)),
       setPin,
       setLock: (l) => {
         setLockState(l);

@@ -10,7 +10,7 @@ export function SignIn() {
         </div>
         <Tuft pose="wave" size={150} />
         <h1 className="gate-title">Featherbound</h1>
-        <p className="muted">Our family library, where every book is a little softer.</p>
+        <p className="muted">Your private library, where every book is a little softer.</p>
         <Link to="/" className="google-btn">
           <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
             <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />
@@ -20,7 +20,7 @@ export function SignIn() {
           </svg>
           Continue with Google
         </Link>
-        <p className="tiny faint">Private library · approved family members only</p>
+        <p className="tiny faint">Private · approved accounts only</p>
       </div>
     </main>
   );
@@ -33,7 +33,7 @@ export function NotApproved() {
         <Tuft pose="guard" size={140} />
         <h1 className="gate-title" style={{ fontSize: 34 }}>This library is private</h1>
         <p className="muted">
-          <strong>someone@example.com</strong> isn’t on the list for this family library. If you think it should be, ask the library’s owner to add you.
+          <strong>someone@example.com</strong> isn’t on Featherbound’s approved list. If you think it should be, ask the admin to add you.
         </p>
         <Link to="/signin" className="btn btn-secondary">Try a different account</Link>
       </div>

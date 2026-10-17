@@ -133,7 +133,7 @@ export default function Library() {
     <main className="page">
       <section className="lib-hero">
         <div className="stack-sm" style={{ flex: 1, minWidth: 0 }}>
-          <h1>The Family Library</h1>
+          <h1>My Library</h1>
           <p className="muted">{books.length} books · {editions.length} softened editions</p>
         </div>
         <div className="lib-hero-guide">
