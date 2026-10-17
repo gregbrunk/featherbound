@@ -4,8 +4,25 @@
     {
       "name": "prototype",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "prototype", "run", "dev", "--", "--port", "5173", "--strictPort"],
+      "runtimeArgs": [
+        "--prefix",
+        "prototype",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5173",
+        "--strictPort"
+      ],
       "port": 5173
+    },
+    {
+      "name": "bakeoff-gallery",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "spikes/illustration-bakeoff/serve.mjs"
+      ],
+      "port": 4178
     }
   ]
 }
