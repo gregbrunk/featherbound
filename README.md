@@ -1,4 +1,4 @@
-# 10 Play Book Library
+# 10 Ply Book Library
 
 Take books we love and adapt them into fun, kid-appropriate versions for the family.
 
