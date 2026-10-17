@@ -1,7 +1,9 @@
-# 10 Ply Book Library
+# Featherbound
 
-Take books we love and adapt them into fun, kid-appropriate versions for the family.
+A private family library that turns books we love into softer, kid-appropriate editions, keeping the full story, characters and themes intact.
+
+See [docs/PRD.md](docs/PRD.md) for the product requirements.
 
 ## Status
 
-Just getting started — tech stack and structure to come.
+Product requirements drafted. Prototype is next.
