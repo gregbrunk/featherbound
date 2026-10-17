@@ -14,6 +14,7 @@ import History from './screens/History';
 import Reader from './screens/Reader';
 import Settings from './screens/Settings';
 import MeetTuft from './screens/MeetTuft';
+import Welcome from './screens/Welcome';
 import { NotApproved, SignIn } from './screens/Gate';
 
 function ScrollToTop() {
@@ -52,6 +53,7 @@ export default function App() {
               <Route path="/edition/:id/history" element={<History />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/design" element={<MeetTuft />} />
+              <Route path="/welcome" element={<Welcome />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>

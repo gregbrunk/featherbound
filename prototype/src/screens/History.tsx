@@ -77,7 +77,7 @@ export default function History() {
         <Modal onClose={() => setRollback(null)} label="Make version current">
           <ModalHead title={`Go back to v${rollback.number}?`} pose="think" onClose={() => setRollback(null)} />
           <div className="stack">
-            <p>“{rollback.name}” becomes the version everyone reads and downloads. <strong>Nothing is deleted.</strong> v{current.number} “{current.name}” stays in the history, and you can switch back any time.</p>
+            <p>“{rollback.name}” becomes the version you read and download. <strong>Nothing is deleted.</strong> v{current.number} “{current.name}” stays in the history, and you can switch back any time.</p>
             <p className="small muted">Reading progress stays on the same chapter.</p>
             <div className="row" style={{ justifyContent: 'flex-end' }}>
               <button className="btn btn-ghost" onClick={() => setRollback(null)}>Cancel</button>

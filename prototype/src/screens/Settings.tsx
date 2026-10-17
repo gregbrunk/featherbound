@@ -11,7 +11,7 @@ import type { Provider, Strictness } from '../data/models';
 const TABS = [
   { id: 'usage', label: 'Usage & costs', icon: 'chart' },
   { id: 'models', label: 'AI models & keys', icon: 'wand' },
-  { id: 'access', label: 'Family access', icon: 'users' },
+  { id: 'access', label: 'Sign-in access', icon: 'users' },
   { id: 'handoff', label: 'Hand-off PIN', icon: 'key' },
   { id: 'about', label: 'About', icon: 'feather' },
 ];
@@ -224,7 +224,7 @@ const STRICT_LABEL: Record<Strictness, { text: string; cls: string }> = {
 };
 
 function Models() {
-  const { ai, setAi, toast } = useStore();
+  const { ai, setAi } = useStore();
   const slots = [
     { name: 'Main', sub: 'Used first' },
     { name: 'Backup 1', sub: 'If the main model refuses' },
@@ -249,22 +249,15 @@ function Models() {
         <div>
           <h3>Your API keys</h3>
           <p className="small muted">
-            Keys belong to <strong>you</strong>. Runs you start are paid for by your keys. Other people in the family add their own keys here, so nobody draws on anyone else’s account.
+            These keys belong to <strong>your account</strong> and pay for everything you run. Other accounts set up their own keys; nothing is shared.
           </p>
         </div>
         <div>
           {PROVIDERS.map((p) => <KeyRow key={p.id} provider={p} />)}
         </div>
         <p className="tiny faint">
-          Easiest: one Vercel AI Gateway key reaches every model at the providers’ list prices, with no markup (card fees may apply). Or add keys from each provider directly; prices are the same. Keys are encrypted, never shown again, and never shared with the family.
+          Easiest: one Vercel AI Gateway key reaches every model at the providers’ list prices, with no markup (card fees may apply). Or add keys from each provider directly; prices are the same. Keys are encrypted, never shown again, and only ever used for your account.
         </p>
-        <div className="toggle-row">
-          <div style={{ flex: 1 }}>
-            <strong>Let family members use my keys</strong>
-            <div className="small muted">Only for people who haven’t added their own. Their runs would be billed to you and show in your usage.</div>
-          </div>
-          <Switch checked={ai.shareWithFamily} onChange={(v) => { setAi({ shareWithFamily: v }); toast(v ? 'Family can use your keys' : 'Your keys are just for you now', v ? 'cheer' : 'guard'); }} label="Let family members use my keys" />
-        </div>
       </div>
 
       <div className="card stack">
@@ -376,9 +369,9 @@ function Access() {
   const valid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
   return (
     <div className="stack-lg">
-      <Guide pose="guard" size={64}>Only people on this list can sign in with Google. Everyone on it sees the whole family library.</Guide>
+      <Guide pose="guard" size={64}>Only emails on this list can sign in with Google. Each account gets its own private library, keys and settings. Nothing is shared between accounts.</Guide>
       <div className="card stack">
-        <h3>Approved people</h3>
+        <h3>Approved accounts</h3>
         <ul className="people">
           {approved.map((p) => (
             <li key={p.email}>
@@ -387,7 +380,7 @@ function Access() {
                 <strong className="ellipsis" style={{ display: 'block' }}>{p.email}</strong>
                 <span className="tiny faint">Added {fmtDate(p.added)}</span>
               </div>
-              {p.owner ? <span className="chip chip-gold">Owner</span> : (
+              {p.admin ? <span className="chip chip-gold">Admin · you</span> : (
                 <button className="btn btn-ghost btn-sm" style={{ color: 'var(--ruby)' }} onClick={() => { removeEmail(p.email); toast(`${p.email} removed`, 'worry'); }}>Remove</button>
               )}
             </li>
@@ -397,7 +390,7 @@ function Access() {
           <input className="input" style={{ flex: 1, minWidth: 220 }} type="email" placeholder="name@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} aria-label="Email to approve" />
           <button className="btn btn-primary" disabled={!valid}><Icon name="plus" size={18} /> Add person</button>
         </form>
-        <p className="small muted">They’ll sign in at the same address with their Google account. Nothing is sent to them; tell them yourself.</p>
+        <p className="small muted">They sign in with their own Google account and start fresh: an empty library, their own AI keys and their own settings. Nothing is sent to them, so let them know yourself.</p>
       </div>
       <div className="card row" style={{ gap: 16, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 220 }}>
@@ -406,6 +399,7 @@ function Access() {
         </div>
         <Link to="/private" className="btn btn-secondary btn-sm"><Icon name="eye" size={16} /> Preview</Link>
         <Link to="/signin" className="btn btn-secondary btn-sm"><Icon name="eye" size={16} /> Preview sign-in</Link>
+        <Link to="/welcome" className="btn btn-secondary btn-sm"><Icon name="eye" size={16} /> Preview a new account</Link>
       </div>
     </div>
   );
@@ -439,7 +433,7 @@ function About() {
         <Tuft pose="read" size={120} />
         <div className="stack-sm" style={{ flex: 1, minWidth: 240 }}>
           <h2>Featherbound</h2>
-          <p className="muted">Books we love, made softer than 2-ply. A private family library: a 10 Ply project.</p>
+          <p className="muted">Books we love, made softer than 2-ply. A private library: a 10 Ply project.</p>
           <p className="small faint">Prototype · October 2026</p>
           <Link to="/design" className="btn btn-secondary btn-sm" style={{ alignSelf: 'flex-start' }}><Icon name="feather" size={16} /> Meet Tuft & the design</Link>
         </div>
