@@ -1,6 +1,6 @@
 # Featherbound — Product Requirements
 
-**Status:** Draft v0.6 · **Last updated:** 2026-10-17
+**Status:** Draft v0.7 · **Last updated:** 2026-10-17
 
 > Priority key: **P0** = must have for first release · **P1** = should have soon after · **P2** = later / nice to have
 >
@@ -112,7 +112,7 @@ After import, or from "New edition" on any book, the mascot walks the parent thr
    - **Reading level:** comes from the age and reading mode, and can be adjusted.
    - Keep original names and invented terms (default on).
    - **Optional extras:** kid-friendly chapter titles, a short "story so far" recap at the start of each chapter, and a glossary of characters and places (P1).
-5. **Picture Book mode** (toggle). Turning it on opens extra settings: how often pictures appear, and the art style (see §5.7).
+5. **Picture Book mode** (toggle). Turning it on opens extra settings: **image density**, which official look to match, and the art style (see §5.7). Moving the density slider updates the predicted cost and time for the whole book as you go.
 6. **Anything else?** Free-text notes for the AI. For example: "Tone down the spiders in Mirkwood a lot." "Keep Bilbo's humor." "Gandalf's 'fall' is important to us; soften it but keep its weight."
 7. **Review & start.**
    - Shows a summary of all settings.
@@ -155,7 +155,10 @@ Parents can save their settings as **presets** (e.g. "Age 6 read-aloud, gentle")
 - Reading progress stays put through refinements and rollbacks, because chapters stay the same.
 
 ### 5.7 Picture Book mode (P1, designed now)
-- Places illustrations at a set rate (e.g. every ~2–4 pages, or about every 600–1,000 words at chapter-book level), at story moments worth showing: new characters, new places, action beats.
+- Places illustrations at story moments worth showing (new characters, new places, action beats), at the edition's **image density**.
+- **Image density** is a slider from **every page** to **once per chapter**, with steps in between (every 2, 3, 5 or 8 pages; 3 or 2 per chapter). Only the steps that make sense for the book are shown, ordered from most to fewest pictures. For example, "every 8 pages" is dropped when chapters are shorter than that.
+  - As the slider moves, the app shows the number of pictures, the **full-book cost** (text plus pictures) and the **total time**, and updates them live. A small table lists every step side by side, so it's easy to trade pictures against cost and time.
+  - The estimate uses the chosen picture models' real prices and speeds (§5.14). It also shows the most the run could cost if every picture had to fall back to the priciest backup model.
 - **Art style is chosen per edition.** The default is **"True to the book's world"**:
   - When official visual media exists (book illustrations, cover art, films), the app studies it and makes the art match. Characters, places, costumes and creatures look the way fans know them. *Harry Potter* should be unmistakably *Harry Potter*.
   - **When there are several official looks** (e.g. *Harry Potter*'s original book art, the illustrated editions, and the films), the app **defaults to the one that best suits the edition's target age** and explains why. The parent can pick a different one.
@@ -199,6 +202,7 @@ Parents can save their settings as **presets** (e.g. "Age 6 read-aloud, gentle")
 
 ### 5.10 Cost & usage (P0)
 - **Estimates before every AI run:** sample chapters, full adaptation, refinements, and illustrations. Each estimate shows expected tokens, cost and time.
+- **Pictures are always in the math.** Whenever an estimate is shown for an illustrated edition (the wizard, sample review, refinement, run progress), its cost and time include visual research, character sheets, illustrations and expected redraws, priced with the chosen picture models. Refinements include redrawing the pictures in rewritten chapters whose scenes changed. Pictures are drawn while later chapters are written, so time estimates account for the overlap.
 - **Cost caps for each run.** A full run or refinement pauses cleanly at a chapter boundary before it would go over its cap (see §5.5).
 - **Usage dashboard** in Settings:
   - Totals for this month and all time: tokens and cost, split into text and images.
@@ -227,6 +231,20 @@ Parents can save their settings as **presets** (e.g. "Age 6 read-aloud, gentle")
   - Guarding the Hand-off lock.
 - **Concept:** the softest round, white puffball bird (inspired by the long-tailed tit, the "snow fairy" of Hokkaido), wearing a wizard hat that's much too big for it. Details and a name get worked out in the prototype.
 - Visual direction: whimsical fantasy, like a cozy enchanted library. Warm parchment, deep jewel tones, hand-drawn touches, floating feathers, and little bits of magic (sparkles, page flutter, candlelight). It should be playful but never cluttered, and the reading screen stays calm and easy to read.
+
+### 5.14 AI models & keys (P0)
+- **Settings → AI models & keys** lets each person:
+  - Choose the **writing model** (default: Claude Opus 5.5).
+  - Choose three **picture models** in order: **main**, **backup 1** and **backup 2**. If a model refuses a picture (common with famous characters), the run tries the next one, and records which model drew each picture.
+  - Each model shows its price per picture, speed, how well it matched the book's art, character consistency, and how strict its content filters are. The app warns if no picture model has loose filters, or if one model fills two slots.
+- **Defaults** (from the October 2026 illustration bake-off; see `spikes/illustration-bakeoff/RESULTS.md`):
+  - Main: **GPT Image 2**. Best match to official art and most consistent characters. Refuses famous copyrighted characters, even when they are only described.
+  - Backup 1: **Nano Banana 2** (Gemini 3.1 Flash Image). Close second and faster, and it draws copyrighted characters. Its prompts forbid signatures, because it copies artists' signatures.
+  - Backup 2: **Grok Imagine 2.0**. The loosest filters tested; it drew every test scene, including *Harry Potter*. This is the last resort, so books like *Harry Potter* still get pictures.
+- **API keys belong to each person.** Each approved person adds their own keys in Settings, and runs they start are billed to those keys. Nobody draws on the Owner's accounts by default. The Owner can choose to **let family members use their keys** when they haven't added their own; those runs show in the Owner's usage.
+  - **Recommended:** one **Vercel AI Gateway** key. It reaches every model at the providers' list prices, with no markup or platform fee (card processing fees may apply), and gives one bill and one spend log.
+  - **Or** direct keys for Anthropic, OpenAI, Google and xAI. Prices are the same; the trade-off is more keys and more bills. A model is usable when the person has the gateway key or that model's own provider key.
+  - Keys are checked when saved, encrypted at rest, never shown again (only the last four characters), and never sent to the browser after saving.
 
 ## 6. Adaptation model
 
@@ -260,7 +278,7 @@ These are modeled on the categories Common Sense Media uses. Each one can be set
 ### 6.3 AI approach (direction only; details go in the build plan)
 - **Text:** a top-tier Claude model is the recommended starting point. It handles long input, writes faithfully in an author's style, and judges content well. Local and open-source models aren't recommended: book-length creative work done faithfully is where quality differences show most, and the volume (a few books a month) doesn't call for self-hosting. The pipeline is built so the model can be swapped.
 - **Pipeline:** import → Story Bible and Content Report → (Picture Book mode: visual research) → samples → feedback → full run chapter by chapter (with rolling context) → consistency check → version 1.0.0 → refinements (new versions).
-- **Images:** the model is chosen during the build plan, based on how well it keeps style and characters consistent and how well it can use reference images.
+- **Images:** a chain of three models (main and two backups), chosen in Settings (§5.14). Defaults: GPT Image 2, then Nano Banana 2, then Grok Imagine 2.0. Every model call goes through one interface (the AI SDK), so models can be swapped without pipeline changes. Self-hosting an open-weights model (e.g. FLUX.2 klein) would avoid hosted filters entirely; it's a later option if all three hosted models keep refusing.
 - **Usage tracking:** every AI call records its tokens and cost against the book, edition, version and run, which feeds the estimates, caps and usage dashboard.
 
 ## 7. Platform & non-functional requirements
@@ -287,7 +305,7 @@ These are modeled on the categories Common Sense Media uses. Each one can be set
 | Q1 | Mascot name: "Tuft" is the working name (others: Pip, Mochi, Wisp, Dumpling, Snowdrop). | Tuft |
 
 ## 9a. Prototype
-A clickable prototype lives in `prototype/` (see the README to run it). It covers every P0 flow plus several P1 ones: library shelves with View / Sort / Filter, series box sets, book page with editions and settings cards, import with AI series suggestion and DRM error, the 7-step Kid-ify wizard with estimate and cost cap, sample review with highlight-to-comment, background runs with the cap pause, the reader (page turns, two-page spread, themes, fonts, illustrations, recaps, compare mode), Hand-off mode with PIN unlock, refinement, version history with compare and rollback, the usage dashboard, family access, and the sign-in and private pages. "Meet Tuft" (`/#/design`) shows the mascot poses, palette and type.
+A clickable prototype lives in `prototype/` (see the README to run it). It covers every P0 flow plus several P1 ones: library shelves with View / Sort / Filter, series box sets, book page with editions and settings cards, import with AI series suggestion and DRM error, the 7-step Kid-ify wizard with estimate and cost cap (including the image density slider with live cost and time), AI models & keys settings, sample review with highlight-to-comment, background runs with the cap pause, the reader (page turns, two-page spread, themes, fonts, illustrations, recaps, compare mode), Hand-off mode with PIN unlock, refinement, version history with compare and rollback, the usage dashboard, family access, and the sign-in and private pages. "Meet Tuft" (`/#/design`) shows the mascot poses, palette and type.
 
 The prototype uses public-domain *Wonderful Wizard of Oz* text (chapters 1 and 12, with hand-written softened versions standing in for AI output) as sample content for every book.
 
@@ -317,3 +335,6 @@ The prototype uses public-domain *Wonderful Wizard of Oz* text (chapters 1 and 1
 | 2026-10-17 | Prototype built as a Vite + React app in `prototype/`, using public-domain Oz text as sample content. | Lets us review real screens and real-feeling softened text without copyrighted material. |
 | 2026-10-17 | Cover art comes from the file, then Open Library and Google Books, preferring the matching English edition. | Real covers make the shelf feel like your library. Catalog data is mixed (library scans, foreign editions), so the app picks carefully and lets the parent change it. |
 | 2026-10-17 | Found official art is checked against the edition's filters and redrawn if needed. | Original illustrations can show the very content an edition removes. |
+| 2026-10-17 | Picture models: GPT Image 2 (main), Nano Banana 2 (backup 1), Grok Imagine 2.0 (backup 2), all changeable in Settings. | Bake-off winner on style and consistency, with backups that don't refuse famous characters. GPT Image 2 and Seedream refuse *Harry Potter* even when the characters are only described. |
+| 2026-10-17 | API keys are per person, entered in Settings. Vercel AI Gateway is the recommended key; direct provider keys also work. | New users can set up without help, and nobody spends someone else's credits by accident. The gateway adds no markup. |
+| 2026-10-17 | Image density runs from every page to once per chapter, with live full-book cost and time as the slider moves. Picture cost and time are included in every estimate. | Parents can balance how many pictures they get against cost and wait. |

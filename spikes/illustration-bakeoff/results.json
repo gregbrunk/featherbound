@@ -1,0 +1,1742 @@
+{
+  "runs": {
+    "flux2pro/sheet": {
+      "file": "out/flux2pro-sheet.jpg",
+      "fallback": true,
+      "ms": 19712,
+      "cost": "0.105",
+      "meta": {
+        "routing": {
+          "originalModelId": "bfl/flux-2-pro",
+          "resolvedProvider": "bfl",
+          "fallbacksAvailable": [],
+          "planningReasoning": "System credentials planned for: bfl. Total execution order: bfl(system)",
+          "canonicalSlug": "bfl/flux-2-pro",
+          "finalProvider": "bfl",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "bfl/flux-2-pro",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "bfl",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276069639,
+                  "endTime": 1792276080667,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.105",
+        "marketCost": "0.105",
+        "surchargeCost": "0",
+        "gatewayCost": "0.105",
+        "inferenceCost": "0.105",
+        "inputInferenceCost": "0",
+        "outputInferenceCost": "0.105",
+        "generationId": "gen_01M55ZMZ7NVPSEAXHDS437037W"
+      },
+      "text": "",
+      "at": "2026-10-17T22:28:00.866Z"
+    },
+    "nanobanana2/sheet": {
+      "file": "out/nanobanana2-sheet.png",
+      "fallback": false,
+      "ms": 11810,
+      "cost": "0.069931",
+      "meta": {
+        "routing": {
+          "originalModelId": "google/gemini-3.1-flash-image",
+          "resolvedProvider": "vertex",
+          "fallbacksAvailable": [
+            "google"
+          ],
+          "planningReasoning": "System credentials planned for: vertex, google. Total execution order: vertex(system) → google(system)",
+          "canonicalSlug": "google/gemini-3.1-flash-image",
+          "finalProvider": "vertex",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "google/gemini-3.1-flash-image",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "vertex",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276050215,
+                  "endTime": 1792276060493,
+                  "statusCode": 200,
+                  "providerResponseId": "UvbTaoieJOaSyOgPyP_QsAw"
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1,
+          "affinity": {
+            "outcome": "no_pin"
+          },
+          "clientSessionId": "532447b78150906f442875824c5f145f",
+          "clientSessionIdSource": "fingerprint"
+        },
+        "cost": "0.069931",
+        "marketCost": "0.069931",
+        "surchargeCost": "0",
+        "gatewayCost": "0.069931",
+        "inferenceCost": "0.069931",
+        "inputInferenceCost": "0.002931",
+        "outputInferenceCost": "0.067",
+        "generationId": "gen_01M55ZMC7XWG50PD2GWXMMZBKJ"
+      },
+      "text": "",
+      "at": "2026-10-17T22:27:41.272Z"
+    },
+    "nanobananapro/sheet": {
+      "file": "out/nanobananapro-sheet.png",
+      "fallback": false,
+      "ms": 25022,
+      "cost": "0.1425508",
+      "meta": {
+        "routing": {
+          "originalModelId": "google/gemini-3-pro-image",
+          "resolvedProvider": "vertex",
+          "fallbacksAvailable": [
+            "google"
+          ],
+          "planningReasoning": "System credentials planned for: vertex, google. Total execution order: vertex(system) → google(system)",
+          "canonicalSlug": "google/gemini-3-pro-image",
+          "finalProvider": "vertex",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "google/gemini-3-pro-image",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "vertex",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276050217,
+                  "endTime": 1792276073628,
+                  "statusCode": 200,
+                  "providerResponseId": "UvbTapXwGZKB4OUP_cmniQI"
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1,
+          "affinity": {
+            "outcome": "no_pin"
+          },
+          "clientSessionId": "532447b78150906f442875824c5f145f",
+          "clientSessionIdSource": "fingerprint"
+        },
+        "cost": "0.1425508",
+        "marketCost": "0.1425508",
+        "surchargeCost": "0",
+        "gatewayCost": "0.1425508",
+        "inferenceCost": "0.1425508",
+        "inputInferenceCost": "0.0028588",
+        "outputInferenceCost": "0.139692",
+        "generationId": "gen_01M55ZMC876YERTHQ1PJH68MWH"
+      },
+      "text": "",
+      "at": "2026-10-17T22:27:54.488Z"
+    },
+    "gptimage2/sheet": {
+      "file": "out/gptimage2-sheet.png",
+      "fallback": false,
+      "ms": 18128,
+      "cost": "0.034533",
+      "meta": {
+        "routing": {
+          "originalModelId": "openai/gpt-image-2",
+          "resolvedProvider": "openai",
+          "fallbacksAvailable": [],
+          "planningReasoning": "System credentials planned for: openai. Total execution order: openai(system)",
+          "canonicalSlug": "openai/gpt-image-2",
+          "finalProvider": "openai",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "openai/gpt-image-2",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "openai",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276050218,
+                  "endTime": 1792276067154,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.034533",
+        "marketCost": "0.034533",
+        "surchargeCost": "0",
+        "gatewayCost": "0.034533",
+        "inferenceCost": "0.034533",
+        "inputInferenceCost": "0",
+        "outputInferenceCost": "0.034533",
+        "generationId": "gen_01M55ZMC6P2411PA078ANZT7S0"
+      },
+      "text": "",
+      "at": "2026-10-17T22:27:47.596Z"
+    },
+    "seedream5/sheet": {
+      "file": "out/seedream5-sheet.jpg",
+      "ms": 156026,
+      "cost": "0.035",
+      "meta": {
+        "routing": {
+          "originalModelId": "bytedance/seedream-5.0-pro",
+          "resolvedProvider": "bytedance",
+          "fallbacksAvailable": [],
+          "planningReasoning": "System credentials planned for: bytedance. Total execution order: bytedance(system)",
+          "canonicalSlug": "bytedance/seedream-5.0-pro",
+          "finalProvider": "bytedance",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "bytedance/seedream-5.0-pro",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "bytedance",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792275541271,
+                  "endTime": 1792275696151,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.035",
+        "marketCost": "0.035",
+        "surchargeCost": "0",
+        "gatewayCost": "0.035",
+        "inferenceCost": "0.035",
+        "inputInferenceCost": "0",
+        "outputInferenceCost": "0.035",
+        "generationId": "gen_01M55Z4TZG8TSY4FEV50RJHZWP"
+      },
+      "text": "",
+      "at": "2026-10-17T22:21:36.456Z"
+    },
+    "flux2pro/wolves": {
+      "error": "Failed after 2 attempts. Last error: GatewayInternalServerError: Black Forest Labs generation failed: Request Moderated.",
+      "moderated": true,
+      "soft": false,
+      "at": "2026-10-17T22:28:42.671Z"
+    },
+    "gptimage2/wolves": {
+      "file": "out/gptimage2-wolves.png",
+      "fallback": false,
+      "ms": 20170,
+      "cost": "0.037782",
+      "meta": {
+        "routing": {
+          "originalModelId": "openai/gpt-image-2",
+          "resolvedProvider": "openai",
+          "fallbacksAvailable": [],
+          "planningReasoning": "System credentials planned for: openai. Total execution order: openai(system)",
+          "canonicalSlug": "openai/gpt-image-2",
+          "finalProvider": "openai",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "openai/gpt-image-2",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "openai",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276096156,
+                  "endTime": 1792276114812,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.037782",
+        "marketCost": "0.037782",
+        "surchargeCost": "0",
+        "gatewayCost": "0.037782",
+        "inferenceCost": "0.037782",
+        "inputInferenceCost": "0",
+        "outputInferenceCost": "0.037782",
+        "generationId": "gen_01M55ZNS3VGSTKSMNXG9XCDM5W"
+      },
+      "text": "",
+      "at": "2026-10-17T22:28:35.310Z"
+    },
+    "nanobanana2/wolves": {
+      "file": "out/nanobanana2-wolves.png",
+      "fallback": false,
+      "ms": 24332,
+      "cost": "0.068793",
+      "meta": {
+        "routing": {
+          "originalModelId": "google/gemini-3.1-flash-image",
+          "resolvedProvider": "vertex",
+          "fallbacksAvailable": [
+            "google"
+          ],
+          "planningReasoning": "System credentials planned for: vertex, google. Total execution order: vertex(system) → google(system)",
+          "canonicalSlug": "google/gemini-3.1-flash-image",
+          "finalProvider": "vertex",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "google/gemini-3.1-flash-image",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "vertex",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276095987,
+                  "endTime": 1792276117726,
+                  "statusCode": 200,
+                  "providerResponseId": "gPbTavTeDv7Th-cP0cimiQM"
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1,
+          "affinity": {
+            "outcome": "no_pin"
+          },
+          "clientSessionId": "464fe03559bcd72ea11fe1e86e524226",
+          "clientSessionIdSource": "fingerprint"
+        },
+        "cost": "0.068793",
+        "marketCost": "0.068793",
+        "surchargeCost": "0",
+        "gatewayCost": "0.068793",
+        "inferenceCost": "0.068793",
+        "inputInferenceCost": "0.001793",
+        "outputInferenceCost": "0.067",
+        "generationId": "gen_01M55ZNRY5K1G1HXE71TWF92FK"
+      },
+      "text": "",
+      "at": "2026-10-17T22:28:39.467Z"
+    },
+    "flux2pro/crow": {
+      "error": "Failed after 2 attempts. Last error: GatewayInternalServerError: Black Forest Labs generation failed: Request Moderated.",
+      "moderated": true,
+      "soft": false,
+      "at": "2026-10-17T22:29:09.217Z"
+    },
+    "nanobananapro/wolves": {
+      "file": "out/nanobananapro-wolves.jpg",
+      "fallback": false,
+      "ms": 52068,
+      "cost": "0.141838",
+      "meta": {
+        "routing": {
+          "originalModelId": "google/gemini-3-pro-image",
+          "resolvedProvider": "vertex",
+          "fallbacksAvailable": [
+            "google"
+          ],
+          "planningReasoning": "System credentials planned for: vertex, google. Total execution order: vertex(system) → google(system)",
+          "canonicalSlug": "google/gemini-3-pro-image",
+          "finalProvider": "google",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "google/gemini-3-pro-image",
+              "success": true,
+              "providerAttemptCount": 2,
+              "providerAttempts": [
+                {
+                  "provider": "vertex",
+                  "credentialType": "system",
+                  "success": false,
+                  "error": "Service temporarily unavailable",
+                  "startTime": 1792276096172,
+                  "endTime": 1792276130544,
+                  "statusCode": 503
+                },
+                {
+                  "provider": "google",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276130547,
+                  "endTime": 1792276146709,
+                  "statusCode": 200,
+                  "providerResponseId": "ovbTauKBK8vV-sAP383N8Q8"
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 2,
+          "affinity": {
+            "outcome": "no_pin"
+          },
+          "clientSessionId": "464fe03559bcd72ea11fe1e86e524226",
+          "clientSessionIdSource": "fingerprint"
+        },
+        "cost": "0.141838",
+        "marketCost": "0.141838",
+        "surchargeCost": "0",
+        "gatewayCost": "0.141838",
+        "inferenceCost": "0.141838",
+        "inputInferenceCost": "0.002002",
+        "outputInferenceCost": "0.139836",
+        "generationId": "gen_01M55ZNS4GP4ZD7S989PF1C8P8"
+      },
+      "text": "",
+      "at": "2026-10-17T22:29:07.206Z"
+    },
+    "gptimage2/crow": {
+      "file": "out/gptimage2-crow.png",
+      "fallback": false,
+      "ms": 34293,
+      "cost": "0.074397",
+      "meta": {
+        "routing": {
+          "originalModelId": "openai/gpt-image-2",
+          "resolvedProvider": "openai",
+          "fallbacksAvailable": [],
+          "planningReasoning": "System credentials planned for: openai. Total execution order: openai(system)",
+          "canonicalSlug": "openai/gpt-image-2",
+          "finalProvider": "openai",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "openai/gpt-image-2",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "openai",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276116095,
+                  "endTime": 1792276149139,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.074397",
+        "marketCost": "0.074397",
+        "surchargeCost": "0",
+        "gatewayCost": "0.074397",
+        "inferenceCost": "0.074397",
+        "inputInferenceCost": "0",
+        "outputInferenceCost": "0.074397",
+        "generationId": "gen_01M55ZPCK3Y1JRQMDPNNSPKE65"
+      },
+      "text": "",
+      "at": "2026-10-17T22:29:09.606Z"
+    },
+    "nanobanana2/crow": {
+      "file": "out/nanobanana2-crow.png",
+      "fallback": false,
+      "ms": 36858,
+      "cost": "0.0687925",
+      "meta": {
+        "routing": {
+          "originalModelId": "google/gemini-3.1-flash-image",
+          "resolvedProvider": "vertex",
+          "fallbacksAvailable": [
+            "google"
+          ],
+          "planningReasoning": "System credentials planned for: vertex, google. Total execution order: vertex(system) → google(system)",
+          "canonicalSlug": "google/gemini-3.1-flash-image",
+          "finalProvider": "vertex",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "google/gemini-3.1-flash-image",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "vertex",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276120037,
+                  "endTime": 1792276150539,
+                  "statusCode": 200,
+                  "providerResponseId": "mPbTat6uENqoyOgPsZGMqAU"
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1,
+          "affinity": {
+            "outcome": "no_pin"
+          },
+          "clientSessionId": "2924753e0b87e94a99879724d2580a40",
+          "clientSessionIdSource": "fingerprint"
+        },
+        "cost": "0.0687925",
+        "marketCost": "0.0687925",
+        "surchargeCost": "0",
+        "gatewayCost": "0.0687925",
+        "inferenceCost": "0.0687925",
+        "inputInferenceCost": "0.0017925",
+        "outputInferenceCost": "0.067",
+        "generationId": "gen_01M55ZPGCXENRG2T5QD9DNVVSC"
+      },
+      "text": "",
+      "at": "2026-10-17T22:29:16.327Z"
+    },
+    "flux2pro/bees": {
+      "error": "Failed after 2 attempts. Last error: GatewayInternalServerError: Black Forest Labs generation failed: Request Moderated.",
+      "moderated": true,
+      "soft": false,
+      "at": "2026-10-17T22:29:35.716Z"
+    },
+    "nanobananapro/crow": {
+      "file": "out/nanobananapro-crow.png",
+      "fallback": false,
+      "ms": 17196,
+      "cost": "0.142182",
+      "meta": {
+        "routing": {
+          "originalModelId": "google/gemini-3-pro-image",
+          "resolvedProvider": "vertex",
+          "fallbacksAvailable": [
+            "google"
+          ],
+          "planningReasoning": "System credentials planned for: vertex, google. Total execution order: vertex(system) → google(system)",
+          "canonicalSlug": "google/gemini-3-pro-image",
+          "finalProvider": "vertex",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "google/gemini-3-pro-image",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "vertex",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276147863,
+                  "endTime": 1792276163564,
+                  "statusCode": 200,
+                  "providerResponseId": "tPbTauChAvqHxtUPvu7toAE"
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1,
+          "affinity": {
+            "outcome": "no_pin"
+          },
+          "clientSessionId": "2924753e0b87e94a99879724d2580a40",
+          "clientSessionIdSource": "fingerprint"
+        },
+        "cost": "0.142182",
+        "marketCost": "0.142182",
+        "surchargeCost": "0",
+        "gatewayCost": "0.142182",
+        "inferenceCost": "0.142182",
+        "inputInferenceCost": "0.00381",
+        "outputInferenceCost": "0.138372",
+        "generationId": "gen_01M55ZQBHK2XX4BJBNTGZ9X6G1"
+      },
+      "text": "",
+      "at": "2026-10-17T22:29:24.404Z"
+    },
+    "nanobanana2/bees": {
+      "file": "out/nanobanana2-bees.png",
+      "fallback": false,
+      "ms": 20577,
+      "cost": "0.068797",
+      "meta": {
+        "routing": {
+          "originalModelId": "google/gemini-3.1-flash-image",
+          "resolvedProvider": "vertex",
+          "fallbacksAvailable": [
+            "google"
+          ],
+          "planningReasoning": "System credentials planned for: vertex, google. Total execution order: vertex(system) → google(system)",
+          "canonicalSlug": "google/gemini-3.1-flash-image",
+          "finalProvider": "vertex",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "google/gemini-3.1-flash-image",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "vertex",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276156975,
+                  "endTime": 1792276176196,
+                  "statusCode": 200,
+                  "providerResponseId": "vfbTasCRDNbh8-0Poc_WuQs"
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1,
+          "affinity": {
+            "outcome": "no_pin"
+          },
+          "clientSessionId": "1ed1203340a16121c42b62e20e7fa377",
+          "clientSessionIdSource": "fingerprint"
+        },
+        "cost": "0.068797",
+        "marketCost": "0.068797",
+        "surchargeCost": "0",
+        "gatewayCost": "0.068797",
+        "inferenceCost": "0.068797",
+        "inputInferenceCost": "0.001797",
+        "outputInferenceCost": "0.067",
+        "generationId": "gen_01M55ZQMFZV564TGM3M1MCAAQG"
+      },
+      "text": "",
+      "at": "2026-10-17T22:29:36.906Z"
+    },
+    "gptimage2/bees": {
+      "file": "out/gptimage2-bees.png",
+      "fallback": false,
+      "ms": 30014,
+      "cost": "0.066732",
+      "meta": {
+        "routing": {
+          "originalModelId": "openai/gpt-image-2",
+          "resolvedProvider": "openai",
+          "fallbacksAvailable": [],
+          "planningReasoning": "System credentials planned for: openai. Total execution order: openai(system)",
+          "canonicalSlug": "openai/gpt-image-2",
+          "finalProvider": "openai",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "openai/gpt-image-2",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "openai",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276150373,
+                  "endTime": 1792276179181,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.066732",
+        "marketCost": "0.066732",
+        "surchargeCost": "0",
+        "gatewayCost": "0.066732",
+        "inferenceCost": "0.066732",
+        "inputInferenceCost": "0",
+        "outputInferenceCost": "0.066732",
+        "generationId": "gen_01M55ZQE1ZKZQN7J82N90PPQZR"
+      },
+      "text": "",
+      "at": "2026-10-17T22:29:39.620Z"
+    },
+    "flux2pro/watercolor": {
+      "file": "out/flux2pro-watercolor.jpg",
+      "fallback": true,
+      "ms": 7145,
+      "cost": "0.045",
+      "meta": {
+        "routing": {
+          "originalModelId": "bfl/flux-2-pro",
+          "resolvedProvider": "bfl",
+          "fallbacksAvailable": [],
+          "planningReasoning": "System credentials planned for: bfl. Total execution order: bfl(system)",
+          "canonicalSlug": "bfl/flux-2-pro",
+          "finalProvider": "bfl",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "bfl/flux-2-pro",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "bfl",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276188294,
+                  "endTime": 1792276194709,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.045",
+        "marketCost": "0.045",
+        "surchargeCost": "0",
+        "gatewayCost": "0.045",
+        "inferenceCost": "0.045",
+        "inputInferenceCost": "0",
+        "outputInferenceCost": "0.045",
+        "generationId": "gen_01M55ZRK3SE7YRF6S7M443GQFH"
+      },
+      "text": "",
+      "at": "2026-10-17T22:29:54.889Z"
+    },
+    "nanobanana2/watercolor": {
+      "file": "out/nanobanana2-watercolor.png",
+      "fallback": false,
+      "ms": 11263,
+      "cost": "0.06762",
+      "meta": {
+        "routing": {
+          "originalModelId": "google/gemini-3.1-flash-image",
+          "resolvedProvider": "vertex",
+          "fallbacksAvailable": [
+            "google"
+          ],
+          "planningReasoning": "System credentials planned for: vertex, google. Total execution order: vertex(system) → google(system)",
+          "canonicalSlug": "google/gemini-3.1-flash-image",
+          "finalProvider": "vertex",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "google/gemini-3.1-flash-image",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "vertex",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276177685,
+                  "endTime": 1792276187433,
+                  "statusCode": 200,
+                  "providerResponseId": "0vbTarDsFN6XyOgPvaj3wAU"
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1,
+          "affinity": {
+            "outcome": "skipped_below_min_prefix"
+          },
+          "clientSessionId": "8ba9339e047cf2f1c323dfaa4a235e55",
+          "clientSessionIdSource": "fingerprint"
+        },
+        "cost": "0.06762",
+        "marketCost": "0.06762",
+        "surchargeCost": "0",
+        "gatewayCost": "0.06762",
+        "inferenceCost": "0.06762",
+        "inputInferenceCost": "0.00062",
+        "outputInferenceCost": "0.067",
+        "generationId": "gen_01M55ZR8QPGKT51Q85FX27GQP1"
+      },
+      "text": "",
+      "at": "2026-10-17T22:29:48.173Z"
+    },
+    "nanobananapro/bees": {
+      "file": "out/nanobananapro-bees.png",
+      "fallback": false,
+      "ms": 26681,
+      "cost": "0.141924",
+      "meta": {
+        "routing": {
+          "originalModelId": "google/gemini-3-pro-image",
+          "resolvedProvider": "vertex",
+          "fallbacksAvailable": [
+            "google"
+          ],
+          "planningReasoning": "System credentials planned for: vertex, google. Total execution order: vertex(system) → google(system)",
+          "canonicalSlug": "google/gemini-3-pro-image",
+          "finalProvider": "vertex",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "google/gemini-3-pro-image",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "vertex",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276165072,
+                  "endTime": 1792276190256,
+                  "statusCode": 200,
+                  "providerResponseId": "xfbTavn6DsXG-7UP87_FuQk"
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1,
+          "affinity": {
+            "outcome": "no_pin"
+          },
+          "clientSessionId": "1ed1203340a16121c42b62e20e7fa377",
+          "clientSessionIdSource": "fingerprint"
+        },
+        "cost": "0.141924",
+        "marketCost": "0.141924",
+        "surchargeCost": "0",
+        "gatewayCost": "0.141924",
+        "inferenceCost": "0.141924",
+        "inputInferenceCost": "0.003828",
+        "outputInferenceCost": "0.138096",
+        "generationId": "gen_01M55ZQWD4Q54C1W1GFMDP511F"
+      },
+      "text": "",
+      "at": "2026-10-17T22:29:51.087Z"
+    },
+    "nanobanana2/likeness": {
+      "file": "out/nanobanana2-likeness.png",
+      "fallback": false,
+      "ms": 9524,
+      "cost": "0.0670375",
+      "meta": {
+        "routing": {
+          "originalModelId": "google/gemini-3.1-flash-image",
+          "resolvedProvider": "vertex",
+          "fallbacksAvailable": [
+            "google"
+          ],
+          "planningReasoning": "System credentials planned for: vertex, google. Total execution order: vertex(system) → google(system)",
+          "canonicalSlug": "google/gemini-3.1-flash-image",
+          "finalProvider": "vertex",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "google/gemini-3.1-flash-image",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "vertex",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276188373,
+                  "endTime": 1792276196938,
+                  "statusCode": 200,
+                  "providerResponseId": "3PbTarf-HdXTw8cP_Iv3-AU"
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1,
+          "affinity": {
+            "outcome": "skipped_below_min_prefix"
+          },
+          "clientSessionId": "9b5c1299bd5032a04835a644fa123661",
+          "clientSessionIdSource": "fingerprint"
+        },
+        "cost": "0.0670375",
+        "marketCost": "0.0670375",
+        "surchargeCost": "0",
+        "gatewayCost": "0.0670375",
+        "inferenceCost": "0.0670375",
+        "inputInferenceCost": "0.0000375",
+        "outputInferenceCost": "0.067",
+        "generationId": "gen_01M55ZRK5WRFFT6FK6FZB1W0Y7"
+      },
+      "text": "",
+      "at": "2026-10-17T22:29:57.697Z"
+    },
+    "flux2pro/likeness": {
+      "error": "Failed after 2 attempts. Last error: GatewayInternalServerError: Black Forest Labs generation failed: Request Moderated.",
+      "moderated": true,
+      "soft": false,
+      "at": "2026-10-17T22:30:22.514Z"
+    },
+    "gptimage2/watercolor": {
+      "file": "out/gptimage2-watercolor.png",
+      "fallback": false,
+      "ms": 32705,
+      "cost": "0.054068",
+      "meta": {
+        "routing": {
+          "originalModelId": "openai/gpt-image-2",
+          "resolvedProvider": "openai",
+          "fallbacksAvailable": [],
+          "planningReasoning": "System credentials planned for: openai. Total execution order: openai(system)",
+          "canonicalSlug": "openai/gpt-image-2",
+          "finalProvider": "openai",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "openai/gpt-image-2",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "openai",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276180335,
+                  "endTime": 1792276211667,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.054068",
+        "marketCost": "0.054068",
+        "surchargeCost": "0",
+        "gatewayCost": "0.054068",
+        "inferenceCost": "0.054068",
+        "inputInferenceCost": "0",
+        "outputInferenceCost": "0.054068",
+        "generationId": "gen_01M55ZRB9S3VY27X1NQMH6JCXM"
+      },
+      "text": "",
+      "at": "2026-10-17T22:30:12.326Z"
+    },
+    "seedream5/wolves": {
+      "file": "out/seedream5-wolves.jpg",
+      "fallback": false,
+      "ms": 124054,
+      "cost": "0.035",
+      "meta": {
+        "routing": {
+          "originalModelId": "bytedance/seedream-5.0-pro",
+          "resolvedProvider": "bytedance",
+          "fallbacksAvailable": [],
+          "planningReasoning": "System credentials planned for: bytedance. Total execution order: bytedance(system)",
+          "canonicalSlug": "bytedance/seedream-5.0-pro",
+          "finalProvider": "bytedance",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "bytedance/seedream-5.0-pro",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "bytedance",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276096013,
+                  "endTime": 1792276218903,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.035",
+        "marketCost": "0.035",
+        "surchargeCost": "0",
+        "gatewayCost": "0.035",
+        "inferenceCost": "0.035",
+        "inputInferenceCost": "0",
+        "outputInferenceCost": "0.035",
+        "generationId": "gen_01M55ZNRZK1YR4M67XCWJRF9GA"
+      },
+      "text": "",
+      "at": "2026-10-17T22:30:19.195Z"
+    },
+    "nanobananapro/watercolor": {
+      "file": "out/nanobananapro-watercolor.png",
+      "fallback": false,
+      "ms": 43021,
+      "cost": "0.138748",
+      "meta": {
+        "routing": {
+          "originalModelId": "google/gemini-3-pro-image",
+          "resolvedProvider": "vertex",
+          "fallbacksAvailable": [
+            "google"
+          ],
+          "planningReasoning": "System credentials planned for: vertex, google. Total execution order: vertex(system) → google(system)",
+          "canonicalSlug": "google/gemini-3-pro-image",
+          "finalProvider": "vertex",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "google/gemini-3-pro-image",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "vertex",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276191761,
+                  "endTime": 1792276232808,
+                  "statusCode": 200,
+                  "providerResponseId": "3_bTatjqO4CGyOgP2ay3iQ4"
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1,
+          "affinity": {
+            "outcome": "skipped_below_min_prefix"
+          },
+          "clientSessionId": "8ba9339e047cf2f1c323dfaa4a235e55",
+          "clientSessionIdSource": "fingerprint"
+        },
+        "cost": "0.138748",
+        "marketCost": "0.138748",
+        "surchargeCost": "0",
+        "gatewayCost": "0.138748",
+        "inferenceCost": "0.138748",
+        "inputInferenceCost": "0.00136",
+        "outputInferenceCost": "0.137388",
+        "generationId": "gen_01M55ZRPEAASTK156YSNP409GT"
+      },
+      "text": "",
+      "at": "2026-10-17T22:30:34.110Z"
+    },
+    "gptimage2/likeness": {
+      "error": "Your request was rejected by the safety system. If you believe this is an error, contact us at help.openai.com and include the request ID req_e9cd634e9b1d4986b45a5a6d60d849d5.",
+      "moderated": false,
+      "soft": false,
+      "at": "2026-10-17T22:30:41.359Z"
+    },
+    "nanobananapro/likeness": {
+      "file": "out/nanobananapro-likeness.png",
+      "fallback": false,
+      "ms": 20486,
+      "cost": "0.137946",
+      "meta": {
+        "routing": {
+          "originalModelId": "google/gemini-3-pro-image",
+          "resolvedProvider": "vertex",
+          "fallbacksAvailable": [
+            "google"
+          ],
+          "planningReasoning": "System credentials planned for: vertex, google. Total execution order: vertex(system) → google(system)",
+          "canonicalSlug": "google/gemini-3-pro-image",
+          "finalProvider": "vertex",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "google/gemini-3-pro-image",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "vertex",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276234344,
+                  "endTime": 1792276253690,
+                  "statusCode": 200,
+                  "providerResponseId": "CvfTaqbZG5Cjw8cPqa_G8Q8"
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1,
+          "affinity": {
+            "outcome": "skipped_below_min_prefix"
+          },
+          "clientSessionId": "9b5c1299bd5032a04835a644fa123661",
+          "clientSessionIdSource": "fingerprint"
+        },
+        "cost": "0.137946",
+        "marketCost": "0.137946",
+        "surchargeCost": "0",
+        "gatewayCost": "0.137946",
+        "inferenceCost": "0.137946",
+        "inputInferenceCost": "0.00015",
+        "outputInferenceCost": "0.137796",
+        "generationId": "gen_01M55ZT0276V6463E6QBTC1YG0"
+      },
+      "text": "",
+      "at": "2026-10-17T22:30:54.596Z"
+    },
+    "seedream5/crow": {
+      "file": "out/seedream5-crow.jpg",
+      "fallback": false,
+      "ms": 129338,
+      "cost": "0.035",
+      "meta": {
+        "routing": {
+          "originalModelId": "bytedance/seedream-5.0-pro",
+          "resolvedProvider": "bytedance",
+          "fallbacksAvailable": [],
+          "planningReasoning": "System credentials planned for: bytedance. Total execution order: bytedance(system)",
+          "canonicalSlug": "bytedance/seedream-5.0-pro",
+          "finalProvider": "bytedance",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "bytedance/seedream-5.0-pro",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "bytedance",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276219717,
+                  "endTime": 1792276346843,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.035",
+        "marketCost": "0.035",
+        "surchargeCost": "0",
+        "gatewayCost": "0.035",
+        "inferenceCost": "0.035",
+        "inputInferenceCost": "0",
+        "outputInferenceCost": "0.035",
+        "generationId": "gen_01M55ZSHSE67PSEKCM8XZ6QG53"
+      },
+      "text": "",
+      "at": "2026-10-17T22:32:28.534Z"
+    },
+    "seedream5/bees": {
+      "file": "out/seedream5-bees.jpg",
+      "fallback": false,
+      "ms": 128431,
+      "cost": "0.035",
+      "meta": {
+        "routing": {
+          "originalModelId": "bytedance/seedream-5.0-pro",
+          "resolvedProvider": "bytedance",
+          "fallbacksAvailable": [],
+          "planningReasoning": "System credentials planned for: bytedance. Total execution order: bytedance(system)",
+          "canonicalSlug": "bytedance/seedream-5.0-pro",
+          "finalProvider": "bytedance",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "bytedance/seedream-5.0-pro",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "bytedance",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276349295,
+                  "endTime": 1792276476590,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.035",
+        "marketCost": "0.035",
+        "surchargeCost": "0",
+        "gatewayCost": "0.035",
+        "inferenceCost": "0.035",
+        "inputInferenceCost": "0",
+        "outputInferenceCost": "0.035",
+        "generationId": "gen_01M55ZXGAD8BWA7CW3AAQRVWJE"
+      },
+      "text": "",
+      "at": "2026-10-17T22:34:36.967Z"
+    },
+    "seedream5/watercolor": {
+      "file": "out/seedream5-watercolor.jpg",
+      "fallback": false,
+      "ms": 121119,
+      "cost": "0.035",
+      "meta": {
+        "routing": {
+          "originalModelId": "bytedance/seedream-5.0-pro",
+          "resolvedProvider": "bytedance",
+          "fallbacksAvailable": [],
+          "planningReasoning": "System credentials planned for: bytedance. Total execution order: bytedance(system)",
+          "canonicalSlug": "bytedance/seedream-5.0-pro",
+          "finalProvider": "bytedance",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "bytedance/seedream-5.0-pro",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "bytedance",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276477527,
+                  "endTime": 1792276597641,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.035",
+        "marketCost": "0.035",
+        "surchargeCost": "0",
+        "gatewayCost": "0.035",
+        "inferenceCost": "0.035",
+        "inputInferenceCost": "0",
+        "outputInferenceCost": "0.035",
+        "generationId": "gen_01M5601DHF6NNGE4ZC2D189H7J"
+      },
+      "text": "",
+      "at": "2026-10-17T22:36:38.088Z"
+    },
+    "seedream5/likeness": {
+      "error": "The request failed because the output image may be related to copyright restrictions. Request id: 021792276598944ef9a07adf34cf0fac1320e81624057e0f6acc0",
+      "moderated": false,
+      "soft": false,
+      "at": "2026-10-17T22:37:51.232Z"
+    },
+    "flux2pro/likeness2": {
+      "file": "out/flux2pro-likeness2.jpg",
+      "fallback": false,
+      "ms": 8938,
+      "cost": "0.03",
+      "meta": {
+        "routing": {
+          "originalModelId": "bfl/flux-2-pro",
+          "resolvedProvider": "bfl",
+          "fallbacksAvailable": [],
+          "planningReasoning": "System credentials planned for: bfl. Total execution order: bfl(system)",
+          "canonicalSlug": "bfl/flux-2-pro",
+          "finalProvider": "bfl",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "bfl/flux-2-pro",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "bfl",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792276726121,
+                  "endTime": 1792276734459,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.03",
+        "marketCost": "0.03",
+        "surchargeCost": "0",
+        "gatewayCost": "0.03",
+        "inferenceCost": "0.03",
+        "inputInferenceCost": "0",
+        "outputInferenceCost": "0.03",
+        "generationId": "gen_01M560909168BHWF8SPACW3CNT"
+      },
+      "text": "",
+      "at": "2026-10-17T22:38:54.699Z"
+    },
+    "gptimage2/likeness2": {
+      "error": "Your request was rejected by the safety system. If you believe this is an error, contact us at help.openai.com and include the request ID req_8da14ee715e34aa8850f4d9926e7dcc9.",
+      "moderated": false,
+      "soft": false,
+      "at": "2026-10-17T22:39:03.051Z"
+    },
+    "seedream5/likeness2": {
+      "error": "The request failed because the output image may be related to copyright restrictions. Request id: 0217922767266995b3fa2cdc51ddff2be86c78e2baff5d733ca99",
+      "moderated": false,
+      "soft": false,
+      "at": "2026-10-17T22:40:03.192Z"
+    },
+    "schnell/sheet": {
+      "error": "Provider prodia does not support image editing inputs (files/mask) for model inference.flux-fast.schnell.txt2img.v2.",
+      "moderated": false,
+      "soft": false,
+      "at": "2026-10-17T23:20:40.474Z"
+    },
+    "recraft41/sheet": {
+      "error": "Provider recraft does not support image editing inputs (files/mask) for model recraftv4_1.",
+      "moderated": false,
+      "soft": false,
+      "at": "2026-10-17T23:20:40.477Z"
+    },
+    "muse/sheet": {
+      "error": "multipart/form-data image edits are not supported when Zero Data Retention is enabled; use a JSON request with inline base64 (data:) images instead.",
+      "moderated": false,
+      "soft": false,
+      "at": "2026-10-17T23:20:40.688Z"
+    },
+    "klein9b/sheet": {
+      "file": "out/klein9b-sheet.jpg",
+      "fallback": true,
+      "ms": 4604,
+      "cost": "0.029000000000000005",
+      "meta": {
+        "routing": {
+          "originalModelId": "bfl/flux-2-klein-9b",
+          "resolvedProvider": "bfl",
+          "fallbacksAvailable": [],
+          "planningReasoning": "System credentials planned for: bfl. Total execution order: bfl(system)",
+          "canonicalSlug": "bfl/flux-2-klein-9b",
+          "finalProvider": "bfl",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "bfl/flux-2-klein-9b",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "bfl",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792279249390,
+                  "endTime": 1792279253139,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.029000000000000005",
+        "marketCost": "0.029000000000000005",
+        "surchargeCost": "0",
+        "gatewayCost": "0.029000000000000005",
+        "inferenceCost": "0.029000000000000005",
+        "inputInferenceCost": "0",
+        "outputInferenceCost": "0.029000000000000005",
+        "generationId": "gen_01M562P0EKK75BJ99AB2AM9BEQ"
+      },
+      "text": "",
+      "at": "2026-10-17T23:20:53.345Z"
+    },
+    "grok2/sheet": {
+      "file": "out/grok2-sheet.jpg",
+      "fallback": false,
+      "ms": 12026,
+      "cost": "0.11",
+      "meta": {
+        "routing": {
+          "originalModelId": "spacexai/grok-imagine-image-2.0",
+          "resolvedProvider": "xai",
+          "fallbacksAvailable": [],
+          "planningReasoning": "System credentials planned for: xai. Total execution order: xai(system)",
+          "canonicalSlug": "xai/grok-imagine-image-2.0",
+          "finalProvider": "xai",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "xai/grok-imagine-image-2.0",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "xai",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792279240592,
+                  "endTime": 1792279251566,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.11",
+        "marketCost": "0.11",
+        "surchargeCost": "0",
+        "gatewayCost": "0.11",
+        "inferenceCost": "0.11",
+        "inputInferenceCost": "0",
+        "outputInferenceCost": "0.11",
+        "generationId": "gen_01M562NQVPF6ESRWQ1XJG3XQAQ"
+      },
+      "text": "",
+      "at": "2026-10-17T23:20:51.753Z"
+    },
+    "klein9b/wolves": {
+      "error": "Failed after 2 attempts. Last error: GatewayInternalServerError: Black Forest Labs generation failed: Request Moderated.",
+      "moderated": true,
+      "soft": false,
+      "at": "2026-10-17T23:21:12.734Z"
+    },
+    "grok2/wolves": {
+      "file": "out/grok2-wolves.jpg",
+      "fallback": false,
+      "ms": 11319,
+      "cost": "0.09",
+      "meta": {
+        "routing": {
+          "originalModelId": "spacexai/grok-imagine-image-2.0",
+          "resolvedProvider": "xai",
+          "fallbacksAvailable": [],
+          "planningReasoning": "System credentials planned for: xai. Total execution order: xai(system)",
+          "canonicalSlug": "xai/grok-imagine-image-2.0",
+          "finalProvider": "xai",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "xai/grok-imagine-image-2.0",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "xai",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792279260667,
+                  "endTime": 1792279271109,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.09",
+        "marketCost": "0.09",
+        "surchargeCost": "0",
+        "gatewayCost": "0.09",
+        "inferenceCost": "0.09",
+        "inputInferenceCost": "0",
+        "outputInferenceCost": "0.09",
+        "generationId": "gen_01M562PBF5XEM5RWCC8SZD98JH"
+      },
+      "text": "",
+      "at": "2026-10-17T23:21:11.329Z"
+    },
+    "klein9b/crow": {
+      "error": "Failed after 2 attempts. Last error: GatewayInternalServerError: Black Forest Labs generation failed: Request Moderated.",
+      "moderated": true,
+      "soft": false,
+      "at": "2026-10-17T23:21:27.382Z"
+    },
+    "grok2/crow": {
+      "file": "out/grok2-crow.jpg",
+      "fallback": false,
+      "ms": 14315,
+      "cost": "0.09",
+      "meta": {
+        "routing": {
+          "originalModelId": "spacexai/grok-imagine-image-2.0",
+          "resolvedProvider": "xai",
+          "fallbacksAvailable": [],
+          "planningReasoning": "System credentials planned for: xai. Total execution order: xai(system)",
+          "canonicalSlug": "xai/grok-imagine-image-2.0",
+          "finalProvider": "xai",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "xai/grok-imagine-image-2.0",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "xai",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792279271860,
+                  "endTime": 1792279285422,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.09",
+        "marketCost": "0.09",
+        "surchargeCost": "0",
+        "gatewayCost": "0.09",
+        "inferenceCost": "0.09",
+        "inputInferenceCost": "0",
+        "outputInferenceCost": "0.09",
+        "generationId": "gen_01M562PPD1YVJT6AS44F905PZ3"
+      },
+      "text": "",
+      "at": "2026-10-17T23:21:25.647Z"
+    },
+    "klein9b/bees": {
+      "error": "Failed after 2 attempts. Last error: GatewayInternalServerError: Black Forest Labs generation failed: Request Moderated.",
+      "moderated": true,
+      "soft": false,
+      "at": "2026-10-17T23:21:40.491Z"
+    },
+    "grok2/bees": {
+      "file": "out/grok2-bees.jpg",
+      "fallback": false,
+      "ms": 12844,
+      "cost": "0.09",
+      "meta": {
+        "routing": {
+          "originalModelId": "spacexai/grok-imagine-image-2.0",
+          "resolvedProvider": "xai",
+          "fallbacksAvailable": [],
+          "planningReasoning": "System credentials planned for: xai. Total execution order: xai(system)",
+          "canonicalSlug": "xai/grok-imagine-image-2.0",
+          "finalProvider": "xai",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "xai/grok-imagine-image-2.0",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "xai",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792279286217,
+                  "endTime": 1792279298293,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.09",
+        "marketCost": "0.09",
+        "surchargeCost": "0",
+        "gatewayCost": "0.09",
+        "inferenceCost": "0.09",
+        "inputInferenceCost": "0",
+        "outputInferenceCost": "0.09",
+        "generationId": "gen_01M562Q4D9WJ2RHB2BCZRR983D"
+      },
+      "text": "",
+      "at": "2026-10-17T23:21:38.492Z"
+    },
+    "klein9b/watercolor": {
+      "file": "out/klein9b-watercolor.jpg",
+      "fallback": false,
+      "ms": 3999,
+      "cost": "0.017",
+      "meta": {
+        "routing": {
+          "originalModelId": "bfl/flux-2-klein-9b",
+          "resolvedProvider": "bfl",
+          "fallbacksAvailable": [],
+          "planningReasoning": "System credentials planned for: bfl. Total execution order: bfl(system)",
+          "canonicalSlug": "bfl/flux-2-klein-9b",
+          "finalProvider": "bfl",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "bfl/flux-2-klein-9b",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "bfl",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792279300945,
+                  "endTime": 1792279304336,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.017",
+        "marketCost": "0.017",
+        "surchargeCost": "0",
+        "gatewayCost": "0.017",
+        "inferenceCost": "0.017",
+        "inputInferenceCost": "0",
+        "outputInferenceCost": "0.017",
+        "generationId": "gen_01M562QJSQ1EEK1D0RFHXFKEW0"
+      },
+      "text": "",
+      "at": "2026-10-17T23:21:44.492Z"
+    },
+    "klein9b/likeness": {
+      "error": "Failed after 2 attempts. Last error: GatewayInternalServerError: Black Forest Labs generation failed: Request Moderated.",
+      "moderated": true,
+      "soft": false,
+      "at": "2026-10-17T23:21:52.562Z"
+    },
+    "grok2/watercolor": {
+      "file": "out/grok2-watercolor.jpg",
+      "fallback": false,
+      "ms": 12641,
+      "cost": "0.07",
+      "meta": {
+        "routing": {
+          "originalModelId": "spacexai/grok-imagine-image-2.0",
+          "resolvedProvider": "xai",
+          "fallbacksAvailable": [],
+          "planningReasoning": "System credentials planned for: xai. Total execution order: xai(system)",
+          "canonicalSlug": "xai/grok-imagine-image-2.0",
+          "finalProvider": "xai",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "xai/grok-imagine-image-2.0",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "xai",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792279299120,
+                  "endTime": 1792279310443,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.07",
+        "marketCost": "0.07",
+        "surchargeCost": "0",
+        "gatewayCost": "0.07",
+        "inferenceCost": "0.07",
+        "inputInferenceCost": "0",
+        "outputInferenceCost": "0.07",
+        "generationId": "gen_01M562QH10NNB2N93G515NHQCD"
+      },
+      "text": "",
+      "at": "2026-10-17T23:21:51.135Z"
+    },
+    "klein9b/likeness2": {
+      "error": "Failed after 2 attempts. Last error: GatewayInternalServerError: Black Forest Labs generation failed: Request Moderated.",
+      "moderated": true,
+      "soft": false,
+      "at": "2026-10-17T23:22:02.475Z"
+    },
+    "grok2/likeness": {
+      "file": "out/grok2-likeness.jpg",
+      "fallback": false,
+      "ms": 12756,
+      "cost": "0.06",
+      "meta": {
+        "routing": {
+          "originalModelId": "spacexai/grok-imagine-image-2.0",
+          "resolvedProvider": "xai",
+          "fallbacksAvailable": [],
+          "planningReasoning": "System credentials planned for: xai. Total execution order: xai(system)",
+          "canonicalSlug": "xai/grok-imagine-image-2.0",
+          "finalProvider": "xai",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "xai/grok-imagine-image-2.0",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "xai",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792279311322,
+                  "endTime": 1792279323671,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.06",
+        "marketCost": "0.06",
+        "surchargeCost": "0",
+        "gatewayCost": "0.06",
+        "inferenceCost": "0.06",
+        "inputInferenceCost": "0",
+        "outputInferenceCost": "0.06",
+        "generationId": "gen_01M562QWYB15J56AFHEECE8MWS"
+      },
+      "text": "",
+      "at": "2026-10-17T23:22:03.892Z"
+    },
+    "grok2/likeness2": {
+      "file": "out/grok2-likeness2.jpg",
+      "fallback": false,
+      "ms": 14022,
+      "cost": "0.06",
+      "meta": {
+        "routing": {
+          "originalModelId": "spacexai/grok-imagine-image-2.0",
+          "resolvedProvider": "xai",
+          "fallbacksAvailable": [],
+          "planningReasoning": "System credentials planned for: xai. Total execution order: xai(system)",
+          "canonicalSlug": "xai/grok-imagine-image-2.0",
+          "finalProvider": "xai",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "canonicalSlug": "xai/grok-imagine-image-2.0",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "xai",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1792279324082,
+                  "endTime": 1792279337687,
+                  "statusCode": 200
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0.06",
+        "marketCost": "0.06",
+        "surchargeCost": "0",
+        "gatewayCost": "0.06",
+        "inferenceCost": "0.06",
+        "inputInferenceCost": "0",
+        "outputInferenceCost": "0.06",
+        "generationId": "gen_01M562R9D4NKHJN933QZWMEH54"
+      },
+      "text": "",
+      "at": "2026-10-17T23:22:17.914Z"
+    }
+  },
+  "creditsStart": {
+    "balance": "0",
+    "totalUsed": "0"
+  },
+  "creditsEnd": {
+    "balance": "22.2803282",
+    "totalUsed": "2.7196718"
+  }
+}

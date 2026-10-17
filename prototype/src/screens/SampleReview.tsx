@@ -7,13 +7,14 @@ import { Guide, ProtoNote, Segmented, money } from '../components/ui';
 import { ozOriginal } from '../data/ozOriginal';
 import { ozChangeNotes, ozSoftenedV1 } from '../data/ozSoftened';
 import { OZ_CHAPTERS } from '../data/library';
-import { estimate, hardestChapter } from './Wizard';
+import { hardestChapter } from './Wizard';
+import { estimate, fmtMinutes } from '../data/models';
 
 type Comment = { id: number; chapter: number; quote: string; text: string };
 
 export default function SampleReview() {
   const { id } = useParams();
-  const { editions, books, updateEdition, toast } = useStore();
+  const { editions, books, updateEdition, toast, ai } = useStore();
   const nav = useNavigate();
   const edition = editions.find((e) => e.id === id);
   const book = books.find((b) => b.id === edition?.bookId);
@@ -44,7 +45,7 @@ export default function SampleReview() {
     { n: 1, why: 'Voice check', shown: 1 },
     { n: realHard, why: 'Hardest chapter', shown: 12 },
   ];
-  const est = estimate(book, edition.settings);
+  const est = estimate(book, edition.settings, ai);
 
   if (making) {
     return (
@@ -86,7 +87,7 @@ export default function SampleReview() {
     updateEdition(edition.id, {
       sampleGuidance: guidance.length ? guidance : edition.sampleGuidance,
       status: 'running',
-      run: { chapter: 0, of: book.chapters, spent: 0, estimate: est.total, cap: Math.ceil(est.total * 1.3) },
+      run: { chapter: 0, of: book.chapters, spent: 0, estimate: est.total, cap: Math.ceil(est.total * 1.3), minutes: est.minutes, images: est.images },
     });
     toast('Off I go! I’ll write the whole book now.', 'write');
     nav(`/edition/${edition.id}/progress`);
@@ -188,7 +189,7 @@ export default function SampleReview() {
             <button className="btn btn-primary" onClick={approve}>
               <Icon name="check" size={18} /> Looks great: write the whole book
             </button>
-            <p className="tiny muted center">Full book: ~{money(est.total)} · cap {money(Math.ceil(est.total * 1.3))} · about {Math.max(5, est.minutes)} min</p>
+            <p className="tiny muted center">Full book: ~{money(est.total)} · cap {money(Math.ceil(est.total * 1.3))} · about {fmtMinutes(Math.max(5, est.minutes))}{est.images ? ` · includes ~${est.images} pictures` : ''}</p>
           </div>
         </aside>
       </div>

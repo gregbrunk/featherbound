@@ -68,7 +68,7 @@ export function defaultSettings(age = 7, mode: ReadingMode = 'read-aloud'): Edit
     readingLevelShift: 0,
     keepNames: true,
     extras: { kidTitles: false, recaps: age <= 8, glossary: false },
-    picture: { on: false, every: 3, style: 'True to the book’s world', look: '' },
+    picture: { on: false, density: 'page3', style: 'True to the book’s world', look: '' },
     notes: '',
   };
 }
@@ -272,7 +272,7 @@ export const EDITIONS: Edition[] = [
     settings: settings(5, 'read-aloud', {
       notes: 'Keep Toto in every scene he’s in. Keep the Scarecrow, Tin Woodman and Lion funny. Make the scary bits bedtime-safe.',
       extras: { kidTitles: true, recaps: true, glossary: false },
-    }, { on: true, every: 3, style: 'True to the book’s world', look: 'W. W. Denslow’s 1900 illustrations' }),
+    }, { on: true, density: 'page3', style: 'True to the book’s world', look: 'W. W. Denslow’s 1900 illustrations' }),
     sampleGuidance: ['A touch less babyish in chapter 1; keep some of Baum’s old-fashioned charm.', 'The wolves running away is perfect.'],
     status: 'ready',
     versions: [
@@ -300,7 +300,7 @@ export const EDITIONS: Edition[] = [
     id: 'hobbit-6', bookId: 'hobbit', name: 'Age 6 · Read-aloud · Illustrated', createdAt: '2026-09-04',
     settings: settings(6, 'read-aloud', {
       notes: 'Tone down the spiders in Mirkwood a lot. Keep Bilbo’s humor and the riddles exactly.',
-    }, { on: true, every: 3, style: 'Watercolor storybook', look: 'The 1977 animated film' }),
+    }, { on: true, density: 'page3', style: 'Watercolor storybook', look: 'The 1977 animated film' }),
     sampleGuidance: ['Gollum should be creepy-funny, not scary.'],
     status: 'ready',
     versions: [
@@ -328,7 +328,7 @@ export const EDITIONS: Edition[] = [
   },
   {
     id: 'hp1-7', bookId: 'hp1', name: 'Age 7 · Read-aloud · Illustrated', createdAt: '2026-08-16',
-    settings: settings(7, 'read-aloud', {}, { on: true, every: 3, style: 'True to the book’s world', look: 'Jim Kay illustrated editions' }),
+    settings: settings(7, 'read-aloud', {}, { on: true, density: 'page3', style: 'True to the book’s world', look: 'Jim Kay illustrated editions' }),
     sampleGuidance: ['Keep the Dursleys funny-mean, not cruel.'],
     status: 'ready',
     versions: [
@@ -339,10 +339,10 @@ export const EDITIONS: Edition[] = [
   },
   {
     id: 'hp2-7', bookId: 'hp2', name: 'Age 7 · Read-aloud · Illustrated', createdAt: '2026-10-17',
-    settings: settings(7, 'read-aloud', {}, { on: true, every: 3, style: 'True to the book’s world', look: 'Jim Kay illustrated editions' }),
+    settings: settings(7, 'read-aloud', {}, { on: true, density: 'page3', style: 'True to the book’s world', look: 'Jim Kay illustrated editions' }),
     sampleGuidance: ['The spiders should match how we did Mirkwood: grumpy, not scary.'],
     status: 'running',
-    run: { chapter: 11, of: 18, spent: 5.12, estimate: 8.9, cap: 12 },
+    run: { chapter: 11, of: 18, spent: 5.12, estimate: 8.9, cap: 12, minutes: 74, images: 24 },
     versions: [],
     currentVersion: '',
   },

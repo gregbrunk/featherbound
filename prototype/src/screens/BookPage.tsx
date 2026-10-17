@@ -7,6 +7,7 @@ import Tuft from '../components/Tuft';
 import ContentHeatmap from '../components/ContentHeatmap';
 import { Guide, Modal, ModalHead, Segmented, fmtDate, money } from '../components/ui';
 import { CATEGORIES, LEVEL_LABEL, OZ_BIBLE, bandFor, gradeLevelFor } from '../data/library';
+import { densityLabel } from '../data/models';
 import type { Book, Edition } from '../data/types';
 
 export default function BookPage() {
@@ -145,7 +146,7 @@ function EditionCard({ edition: e, book, progress, onDownload }: { edition: Edit
         <Setting label="Made for" value={`Age ${s.targetAge}`} sub={bandFor(s.targetAge).name} />
         <Setting label="Reading mode" value={s.readingMode === 'read-aloud' ? 'Read aloud' : 'Independent reader'} sub={gradeLevelFor(s.targetAge, s.readingMode, s.readingLevelShift) + ' language'} />
         <Setting label="Faithfulness" value={s.faithfulness < 34 ? 'Close to the author' : s.faithfulness < 67 ? 'Balanced' : 'Free retelling'} sub={`${100 - s.faithfulness}% author’s words`} />
-        <Setting label="Pictures" value={s.picture.on ? `Every ~${s.picture.every} pages` : 'Text only'} sub={s.picture.on ? `${s.picture.style}${s.picture.look ? ` · ${s.picture.look}` : ''}` : undefined} />
+        <Setting label="Pictures" value={s.picture.on ? densityLabel(book, s.picture.density) : 'Text only'} sub={s.picture.on ? `${s.picture.style}${s.picture.look ? ` · ${s.picture.look}` : ''}` : undefined} />
       </div>
 
       <div className="stack-sm">

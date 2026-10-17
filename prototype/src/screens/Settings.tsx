@@ -5,9 +5,12 @@ import Icon from '../components/Icon';
 import Tuft from '../components/Tuft';
 import { Guide, ProtoNote, Switch, fmtDate, money, tokens } from '../components/ui';
 import { MONTHLY, RUNS } from '../data/library';
+import { IMAGE_MODELS, PROVIDERS, TEXT_MODELS, imageModel, reachable, textModel } from '../data/models';
+import type { Provider, Strictness } from '../data/models';
 
 const TABS = [
   { id: 'usage', label: 'Usage & costs', icon: 'chart' },
+  { id: 'models', label: 'AI models & keys', icon: 'wand' },
   { id: 'access', label: 'Family access', icon: 'users' },
   { id: 'handoff', label: 'Hand-off PIN', icon: 'key' },
   { id: 'about', label: 'About', icon: 'feather' },
@@ -31,6 +34,7 @@ export default function Settings() {
         </nav>
         <section style={{ minWidth: 0 }}>
           {tab === 'usage' && <Usage />}
+          {tab === 'models' && <Models />}
           {tab === 'access' && <Access />}
           {tab === 'handoff' && <Handoff />}
           {tab === 'about' && <About />}
@@ -213,6 +217,159 @@ function Kpi({ label, value, sub, warn }: { label: string; value: string; sub: s
   );
 }
 
+const STRICT_LABEL: Record<Strictness, { text: string; cls: string }> = {
+  strict: { text: 'Strict filters', cls: 'chip-ruby' },
+  medium: { text: 'Medium filters', cls: 'chip-gold' },
+  loose: { text: 'Loose filters', cls: 'chip-emerald' },
+};
+
+function Models() {
+  const { ai, setAi, toast } = useStore();
+  const slots = [
+    { name: 'Main', sub: 'Used first' },
+    { name: 'Backup 1', sub: 'If the main model refuses' },
+    { name: 'Backup 2', sub: 'Last resort' },
+  ];
+  const setSlot = (i: number, id: string) => {
+    const images = [...ai.images] as typeof ai.images;
+    images[i] = id;
+    setAi({ images });
+  };
+  const loosest = ai.images.some((id) => imageModel(id).strictness === 'loose');
+  const dupes = new Set(ai.images).size < ai.images.length;
+  const tm = textModel(ai.text);
+
+  return (
+    <div className="stack-lg">
+      <Guide pose="think" size={64}>
+        I write with one model and draw with up to three. If a picture model says no (it happens with famous characters), I quietly try the next one.
+      </Guide>
+
+      <div className="card stack">
+        <div>
+          <h3>Your API keys</h3>
+          <p className="small muted">
+            Keys belong to <strong>you</strong>. Runs you start are paid for by your keys. Other people in the family add their own keys here, so nobody draws on anyone else’s account.
+          </p>
+        </div>
+        <div>
+          {PROVIDERS.map((p) => <KeyRow key={p.id} provider={p} />)}
+        </div>
+        <p className="tiny faint">
+          Easiest: one Vercel AI Gateway key reaches every model at the providers’ list prices, with no markup (card fees may apply). Or add keys from each provider directly; prices are the same. Keys are encrypted, never shown again, and never shared with the family.
+        </p>
+        <div className="toggle-row">
+          <div style={{ flex: 1 }}>
+            <strong>Let family members use my keys</strong>
+            <div className="small muted">Only for people who haven’t added their own. Their runs would be billed to you and show in your usage.</div>
+          </div>
+          <Switch checked={ai.shareWithFamily} onChange={(v) => { setAi({ shareWithFamily: v }); toast(v ? 'Family can use your keys' : 'Your keys are just for you now', v ? 'cheer' : 'guard'); }} label="Let family members use my keys" />
+        </div>
+      </div>
+
+      <div className="card stack">
+        <div>
+          <h3>Writing model</h3>
+          <p className="small muted">Adapts the text, writes the Story Bible and checks consistency.</p>
+        </div>
+        <ModelSelect id="text-model" value={ai.text} onChange={(id) => setAi({ text: id })}
+          options={TEXT_MODELS.map((m) => ({ id: m.id, label: `${m.name}${m.recommended ? ' (recommended)' : ''}` }))} />
+        <div className="model-meta">
+          <span className="chip chip-plain">${tm.inPerM} / ${tm.outPerM} per M tokens</span>
+          <span className="chip chip-plain">{tm.speed >= 1.3 ? 'Faster' : tm.speed < 0.9 ? 'Slower' : 'Normal speed'}</span>
+          {!reachable(tm.provider, ai.keys) && <span className="chip chip-ruby">Needs a {PROVIDERS.find((p) => p.id === tm.provider)?.name ?? tm.provider} or Gateway key</span>}
+        </div>
+        <p className="small muted">{tm.note}</p>
+      </div>
+
+      <div className="card stack">
+        <div>
+          <h3>Picture models</h3>
+          <p className="small muted">Tried in order. Estimates use the main model’s price and show the most a run could cost if backups were needed.</p>
+        </div>
+        <div>
+          {slots.map((slot, i) => {
+            const m = imageModel(ai.images[i]);
+            return (
+              <div key={slot.name} className="model-slot">
+                <label className="slot-name" htmlFor={`img-${i}`}>{slot.name}<small>{slot.sub}</small></label>
+                <div>
+                  <ModelSelect id={`img-${i}`} value={ai.images[i]} onChange={(id) => setSlot(i, id)}
+                    options={IMAGE_MODELS.map((x) => ({ id: x.id, label: x.name }))} />
+                  <div className="model-meta">
+                    <span className="chip chip-plain">~{money(m.perImage)} / picture</span>
+                    <span className="chip chip-plain">~{m.seconds}s each</span>
+                    <span className="chip chip-plain">Book-art match {m.denslow}/5</span>
+                    <span className="chip chip-plain">Consistency {m.consistency}/5</span>
+                    <span className={`chip ${STRICT_LABEL[m.strictness].cls}`}>{STRICT_LABEL[m.strictness].text}</span>
+                    {!reachable(m.provider, ai.keys) && <span className="chip chip-ruby">No key reaches this model</span>}
+                  </div>
+                  <p className="small muted" style={{ marginTop: 6 }}>{m.note}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {!loosest && (
+          <p className="small" style={{ color: 'var(--ruby)' }}><Icon name="info" size={14} className="inline-icon" /> None of your picture models has loose filters. Books with famous characters (like Harry Potter) may end up with missing pictures.</p>
+        )}
+        {dupes && <p className="small" style={{ color: 'var(--ruby)' }}><Icon name="info" size={14} className="inline-icon" /> The same model is in more than one slot, so a refusal won’t have a real backup.</p>}
+        <p className="tiny faint">Scores come from our Oct 2026 illustration bake-off with W. W. Denslow’s Oz art.</p>
+      </div>
+      <ProtoNote>Prototype: keys you type here aren’t saved or sent anywhere; only a masked hint is kept until you reload. Model choices are remembered on this device.</ProtoNote>
+    </div>
+  );
+}
+
+function ModelSelect({ id, value, onChange, options }: { id: string; value: string; onChange: (id: string) => void; options: { id: string; label: string }[] }) {
+  return (
+    <select id={id} className="input" value={value} onChange={(e) => onChange(e.target.value)}>
+      {options.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+    </select>
+  );
+}
+
+function KeyRow({ provider }: { provider: (typeof PROVIDERS)[number] }) {
+  const { ai, setAi, toast } = useStore();
+  const [value, setValue] = useState('');
+  const saved = ai.keys[provider.id];
+  const setKey = (id: Provider, k: (typeof ai.keys)[Provider] | undefined) => {
+    const keys = { ...ai.keys };
+    if (k) keys[id] = k; else delete keys[id];
+    setAi({ keys });
+  };
+  const save = () => {
+    const trimmed = value.trim();
+    if (trimmed.length < 8) return;
+    setKey(provider.id, { hint: `••••${trimmed.slice(-4)}`, added: '2026-10-17', status: 'checking' });
+    setValue('');
+    setTimeout(() => {
+      setKey(provider.id, { hint: `••••${trimmed.slice(-4)}`, added: '2026-10-17', status: 'ok' });
+      toast(`${provider.name} key works`, 'cheer');
+    }, 900);
+  };
+  return (
+    <div className="key-row">
+      <div className="key-info">
+        <strong>{provider.name}</strong> {provider.recommended && <span className="chip chip-emerald" style={{ marginLeft: 4 }}>Recommended</span>}
+        <div className="small muted">{provider.hint}</div>
+      </div>
+      {saved ? (
+        <div className="row" style={{ gap: 8 }}>
+          <span className="mono small">{saved.hint}</span>
+          {saved.status === 'checking' ? <span className="chip chip-plain">Checking…</span> : <span className="chip chip-emerald"><Icon name="check" size={12} stroke={3} /> Working</span>}
+          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--ruby)' }} onClick={() => { setKey(provider.id, undefined); toast(`${provider.name} key removed`, 'worry'); }}>Remove</button>
+        </div>
+      ) : (
+        <form onSubmit={(e) => { e.preventDefault(); save(); }}>
+          <input className="input" type="password" autoComplete="off" spellCheck={false} placeholder={`Paste your ${provider.keyLabel}`} value={value} onChange={(e) => setValue(e.target.value)} aria-label={provider.keyLabel} />
+          <button className="btn btn-secondary btn-sm" disabled={value.trim().length < 8}>Save</button>
+        </form>
+      )}
+    </div>
+  );
+}
+
 function Access() {
   const { approved, addEmail, removeEmail, toast } = useStore();
   const [email, setEmail] = useState('');
@@ -289,7 +446,7 @@ function About() {
       </div>
       <div className="card stack-sm">
         <h3>AI models</h3>
-        <p className="small muted">Text: a top-tier Claude model. Pictures: chosen in the build plan. Model choices will live here so they can be swapped later.</p>
+        <p className="small muted">Choose the writing and picture models, and add your own API keys, in <Link to="/settings?tab=models">AI models &amp; keys</Link>.</p>
       </div>
     </div>
   );

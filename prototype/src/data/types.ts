@@ -15,9 +15,11 @@ export type FilterLevel = 'keep' | 'soften' | 'remove';
 
 export type ReadingMode = 'read-aloud' | 'independent';
 
+export type PictureDensity = 'page1' | 'page2' | 'page3' | 'chapter3' | 'page5' | 'chapter2' | 'page8' | 'chapter1';
+
 export type PictureSettings = {
   on: boolean;
-  every: number; // roughly one picture every N pages
+  density: PictureDensity; // how many pictures, from every page to once per chapter
   style: string;
   look: string;
 };
@@ -60,6 +62,8 @@ export type Edition = {
     spent: number;
     estimate: number;
     cap: number;
+    minutes?: number; // estimated total time, text and pictures
+    images?: number; // pictures this run will draw
     // Set for refinement runs.
     level?: 'major' | 'minor' | 'patch';
     guidance?: string;
