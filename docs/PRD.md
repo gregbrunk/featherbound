@@ -1,6 +1,6 @@
 # Featherbound — Product Requirements
 
-**Status:** Draft v0.4 · **Last updated:** 2026-10-17
+**Status:** Draft v0.6 · **Last updated:** 2026-10-17
 
 > Priority key: **P0** = must have for first release · **P1** = should have soon after · **P2** = later / nice to have
 >
@@ -94,6 +94,7 @@ The app is a whimsical, fantasy-themed library that makes reading feel fun. A so
   - Splits the book into chapters.
   - **Suggests a series and book number** using the file's metadata and AI ("This looks like *Harry Potter*, book 3"). It matches an existing series on the shelf when there is one, or offers to create a new series. The parent confirms or corrects it. Standalone books are fine.
   - Suggests genres.
+  - **Finds the real cover art**: uses the cover inside the file if there is one; otherwise looks it up in Open Library and Google Books (the same catalogs Calibre uses), preferring the English edition that matches the file. The parent can pick a different cover or upload one.
   - Shows a preview so the parent can fix chapter breaks and metadata before saving.
 - Recognizes DRM-protected files and explains, kindly, that they can't be imported, with tips on legal DRM-free sources (Kobo "DRM-Free" label, Amazon EPUB downloads from KDP authors, buying from the author directly).
 - Import must get the text right: no lost paragraphs, scrambled order, or headers and footers mixed into the story. PDF import removes page numbers and running headers.
@@ -168,6 +169,7 @@ Parents can save their settings as **presets** (e.g. "Age 6 read-aloud, gentle")
 - A **character visual sheet** for each book keeps each character looking the same from picture to picture. In a series, it starts from the previous book's sheets. Parents can approve or regenerate each sheet before illustrations are made.
 - Parents can swap, regenerate, upload their own, or remove any illustration. Illustration changes count as refinements and create new versions.
 - Image source and attribution are recorded for each illustration.
+- **Found art must pass the edition's filters too.** Official art can show exactly what the edition softens. For example, Denslow's original *Oz* art shows the Tin Woodman sitting on a dead wolf. The app checks each found image against the content filters, and redraws any that don't fit, in the same style.
 
 ### 5.8 Reader (P0)
 - Reads both originals and editions, with a first-class layout on phone, tablet and desktop. On phone, it uses swipe or tap page turns; on tablet and desktop, it can show one page or a two-page spread.
@@ -280,7 +282,14 @@ These are modeled on the categories Common Sense Media uses. Each one can be set
 - Actual costs stay within roughly ±25% of estimates, and no run goes past its cap.
 
 ## 9. Open questions
-None right now. New questions from the prototype stage will be added here.
+| # | Question | Default if not decided |
+|---|---|---|
+| Q1 | Mascot name: "Tuft" is the working name (others: Pip, Mochi, Wisp, Dumpling, Snowdrop). | Tuft |
+
+## 9a. Prototype
+A clickable prototype lives in `prototype/` (see the README to run it). It covers every P0 flow plus several P1 ones: library shelves with View / Sort / Filter, series box sets, book page with editions and settings cards, import with AI series suggestion and DRM error, the 7-step Kid-ify wizard with estimate and cost cap, sample review with highlight-to-comment, background runs with the cap pause, the reader (page turns, two-page spread, themes, fonts, illustrations, recaps, compare mode), Hand-off mode with PIN unlock, refinement, version history with compare and rollback, the usage dashboard, family access, and the sign-in and private pages. "Meet Tuft" (`/#/design`) shows the mascot poses, palette and type.
+
+The prototype uses public-domain *Wonderful Wizard of Oz* text (chapters 1 and 12, with hand-written softened versions standing in for AI output) as sample content for every book.
 
 ## 10. Decision log
 | Date | Decision | Why |
@@ -305,3 +314,6 @@ None right now. New questions from the prototype stage will be added here.
 | 2026-10-17 | When there are several official looks, default to the one that best suits the target age; the parent can pick another. | The right look for a 5-year-old may differ from the right look for a 12-year-old. |
 | 2026-10-17 | Hand-off unlock uses a 4-digit parent PIN. | Simple and reliable. |
 | 2026-10-17 | Repo and project folder renamed to `featherbound`. | Matches the app name. |
+| 2026-10-17 | Prototype built as a Vite + React app in `prototype/`, using public-domain Oz text as sample content. | Lets us review real screens and real-feeling softened text without copyrighted material. |
+| 2026-10-17 | Cover art comes from the file, then Open Library and Google Books, preferring the matching English edition. | Real covers make the shelf feel like your library. Catalog data is mixed (library scans, foreign editions), so the app picks carefully and lets the parent change it. |
+| 2026-10-17 | Found official art is checked against the edition's filters and redrawn if needed. | Original illustrations can show the very content an edition removes. |
