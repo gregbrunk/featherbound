@@ -4,6 +4,7 @@ import { nextVersion, useStore } from '../store';
 import Icon from '../components/Icon';
 import Tuft from '../components/Tuft';
 import { ProtoNote, money } from '../components/ui';
+import { fmtMinutes } from '../data/models';
 
 // Shows a background adaptation or refinement run. The prototype fast-forwards it.
 
@@ -133,7 +134,10 @@ export default function RunProgress() {
             <i className={paused ? 'over' : ''} style={{ width: `${Math.min(100, (run.spent / run.cap) * 100)}%` }} />
             <b style={{ left: `${Math.min(100, (run.estimate / run.cap) * 100)}%` }} title="Estimate" />
           </div>
-          <div className="row tiny muted"><span>Estimate {money(run.estimate)}</span><span className="spacer" /><span>Cap {money(run.cap)}</span></div>
+          <div className="row tiny muted"><span>Estimate {money(run.estimate)}{run.images ? ` · includes ~${run.images} pictures` : ''}</span><span className="spacer" /><span>Cap {money(run.cap)}</span></div>
+          {run.minutes != null && !paused && (
+            <div className="row tiny muted"><span>About {fmtMinutes(Math.max(1, run.minutes * (1 - run.chapter / run.of)))} left of ~{fmtMinutes(run.minutes)}</span></div>
+          )}
         </div>
 
         {paused ? (

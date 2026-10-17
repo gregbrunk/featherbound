@@ -10,6 +10,8 @@ import { Guide, Segmented, Switch, money } from '../components/ui';
 import {
   ART_STYLES, CATEGORIES, LEVEL_LABEL, bandFor, defaultFilters, defaultSettings, editionName, gradeLevelFor, looksFor, recommendedLook,
 } from '../data/library';
+import { densityLabel, densityTiers, estimate, fmtMinutes, imageModel, textModel } from '../data/models';
+import type { AiChoice } from '../data/models';
 import type { Book, EditionSettings, FilterLevel } from '../data/types';
 
 const STEPS = [
@@ -22,23 +24,11 @@ const STEPS = [
   { key: 'review', title: 'Review & start', pose: 'cheer' as TuftPose },
 ];
 
-export function estimate(book: Book, s: EditionSettings) {
-  // Example figures for the prototype; the real app calibrates these from past runs.
-  const tokensIn = Math.round(book.words * 1.33 * 3.2);
-  const tokensOut = Math.round(book.words * 1.33 * 1.15);
-  const text = (book.words / 100_000) * 7.4;
-  const pages = Math.round(book.words / 250);
-  const images = s.picture.on ? Math.round(pages / s.picture.every) : 0;
-  const imageCost = images * 0.04 + (s.picture.on ? 0.35 : 0);
-  const minutes = Math.round(book.words / 2400 + (s.picture.on ? images / 6 : 0));
-  return { tokensIn, tokensOut, text, images, imageCost, total: text + imageCost, minutes, samples: 0.25 + (s.picture.on ? 0.16 : 0) };
-}
-
 export default function Wizard() {
   const { id } = useParams();
   const [params] = useSearchParams();
   const fromId = params.get('from');
-  const { books, editions, series, createEdition, toast } = useStore();
+  const { books, editions, series, createEdition, toast, ai } = useStore();
   const nav = useNavigate();
   const book = books.find((b) => b.id === id);
   const from = editions.find((e) => e.id === fromId);
@@ -53,7 +43,7 @@ export default function Wizard() {
 
   if (!book) return <main className="page"><p>Book not found.</p></main>;
   const sr = series.find((x) => x.id === book.seriesId);
-  const est = estimate(book, s);
+  const est = estimate(book, s, ai);
   const capValue = cap ?? Math.ceil(est.total * 1.3);
   const set = (patch: Partial<EditionSettings>) => setS((prev) => ({ ...prev, ...patch }));
   const cur = STEPS[step];
@@ -183,7 +173,7 @@ export default function Wizard() {
               </div>
             )}
 
-            {cur.key === 'pictures' && <PicturesStep book={book} s={s} set={set} seriesName={sr?.name} />}
+            {cur.key === 'pictures' && <PicturesStep book={book} s={s} set={set} seriesName={sr?.name} ai={ai} />}
 
             {cur.key === 'notes' && (
               <div className="stack">
@@ -218,7 +208,7 @@ export default function Wizard() {
                   <SumItem k="Edition name" v={editionName(s)} onEdit={() => setStep(0)} />
                   <SumItem k="Reading level" v={`${gradeLevelFor(s.targetAge, s.readingMode, s.readingLevelShift)} · ${s.faithfulness < 34 ? 'close to the author' : s.faithfulness < 67 ? 'balanced' : 'free retelling'}`} onEdit={() => setStep(3)} />
                   <SumItem k="Filters" v={CATEGORIES.filter((c) => s.filters[c.id] !== 'keep').map((c) => `${c.name}: ${LEVEL_LABEL[s.filters[c.id]].toLowerCase()}`).join(' · ') || 'Everything kept'} onEdit={() => setStep(2)} />
-                  <SumItem k="Pictures" v={s.picture.on ? `About every ${s.picture.every} pages · ${s.picture.style}${s.picture.look ? ` · ${s.picture.look}` : ''}` : 'Text only'} onEdit={() => setStep(4)} />
+                  <SumItem k="Pictures" v={s.picture.on ? `${densityLabel(book, s.picture.density)} · ${s.picture.style}${s.picture.look ? ` · ${s.picture.look}` : ''}` : 'Text only'} onEdit={() => setStep(4)} />
                   <SumItem k="Notes" v={s.notes || 'None'} onEdit={() => setStep(5)} />
                 </div>
 
@@ -231,13 +221,14 @@ export default function Wizard() {
                     <div className="est-total">
                       <span className="tiny faint">FULL BOOK</span>
                       <strong>~{money(est.total)}</strong>
-                      <span className="small muted">about {est.minutes < 60 ? `${est.minutes} min` : `${(est.minutes / 60).toFixed(1)} hr`}</span>
+                      <span className="small muted">about {fmtMinutes(est.minutes)}</span>
                     </div>
                   </div>
                   <div className="est-lines">
                     <div><span>Sample chapters (next step)</span><strong>~{money(est.samples)}</strong></div>
-                    <div><span>Text · ~{(est.tokensIn / 1e6).toFixed(2)}M in / {(est.tokensOut / 1e6).toFixed(2)}M out tokens</span><strong>~{money(est.text)}</strong></div>
-                    {s.picture.on && <div><span>Pictures · visual research + ~{est.images} illustrations</span><strong>~{money(est.imageCost)}</strong></div>}
+                    <div><span>Text · {textModel(ai.text).name} · ~{(est.tokensIn / 1e6).toFixed(2)}M in / {(est.tokensOut / 1e6).toFixed(2)}M out tokens · ~{fmtMinutes(est.textMinutes)}</span><strong>~{money(est.text)}</strong></div>
+                    {s.picture.on && <div><span>Pictures · {imageModel(ai.images[0]).name} · research, 5 character sheets + ~{est.images} illustrations · ~{fmtMinutes(est.imageMinutes)}</span><strong>~{money(est.imageCost)}</strong></div>}
+                    {s.picture.on && est.imageWorst > est.imageCost * 1.05 && <div className="faint"><span>If every picture fell back to the priciest backup model</span><span>up to ~{money(est.totalWorst)}</span></div>}
                   </div>
                   <div className="field" style={{ marginTop: 6 }}>
                     <label className="label" htmlFor="cap">Cost cap for the full run</label>
@@ -246,7 +237,7 @@ export default function Wizard() {
                       <span className="hint" style={{ flex: 1, minWidth: 200 }}>If a chapter would push past this, I’ll pause at the end of the chapter before it and check with you.</span>
                     </div>
                   </div>
-                  <p className="tiny faint">Example prices for the prototype. The real app uses your actual model prices and learns from past runs.</p>
+                  <p className="tiny faint">Pictures are drawn while later chapters are written, so the times overlap. Prices come from your chosen models (<Link to="/settings?tab=models">Settings → AI models</Link>); the real app also learns from past runs.</p>
                 </div>
 
                 <Guide pose="read" size={56}>
@@ -397,12 +388,11 @@ function ToggleRow({ title, desc, checked, onChange, badge }: { title: string; d
   );
 }
 
-function PicturesStep({ book, s, set, seriesName }: { book: Book; s: EditionSettings; set: (p: Partial<EditionSettings>) => void; seriesName?: string }) {
+function PicturesStep({ book, s, set, seriesName, ai }: { book: Book; s: EditionSettings; set: (p: Partial<EditionSettings>) => void; seriesName?: string; ai: AiChoice }) {
   const looks = looksFor(book.id);
   const rec = recommendedLook(book.id, s.targetAge);
   const p = s.picture;
   const pp = (patch: Partial<EditionSettings['picture']>) => set({ picture: { ...p, ...patch } });
-  const pages = Math.round(book.words / 250);
   return (
     <div className="stack-lg">
       <div className="picture-toggle">
@@ -420,15 +410,7 @@ function PicturesStep({ book, s, set, seriesName }: { book: Book; s: EditionSett
         </div>
       ) : (
         <>
-          <div className="field">
-            <label className="label" htmlFor="every">How often?</label>
-            <input id="every" className="range" type="range" min={2} max={8} value={p.every} onChange={(e) => pp({ every: Number(e.target.value) })} />
-            <div className="row small muted" style={{ justifyContent: 'space-between' }}>
-              <span>Lots of pictures</span>
-              <strong style={{ color: 'var(--plum)' }}>About every {p.every} pages · ~{Math.round(pages / p.every)} pictures</strong>
-              <span>A few</span>
-            </div>
-          </div>
+          <DensityPicker book={book} s={s} ai={ai} onChange={(density) => pp({ density })} />
 
           <div className="field">
             <span className="label">Which look should characters match?</span>
@@ -466,6 +448,58 @@ function PicturesStep({ book, s, set, seriesName }: { book: Book; s: EditionSett
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+function DensityPicker({ book, s, ai, onChange }: { book: Book; s: EditionSettings; ai: AiChoice; onChange: (d: EditionSettings['picture']['density']) => void }) {
+  const tiers = densityTiers(book);
+  const idx = Math.max(0, tiers.findIndex((t) => t.id === s.picture.density));
+  const rows = tiers.map((t) => ({ ...t, est: estimate(book, { ...s, picture: { ...s.picture, density: t.id } }, ai) }));
+  const cur = rows[idx];
+  const textOnly = estimate(book, { ...s, picture: { ...s.picture, on: false } }, ai);
+  const maxCost = Math.max(...rows.map((r) => r.est.total));
+  return (
+    <div className="field">
+      <label className="label" htmlFor="density">Image density</label>
+      <input id="density" className="range" type="range" min={0} max={tiers.length - 1} step={1} value={idx}
+        onChange={(e) => onChange(tiers[Number(e.target.value)].id)}
+        aria-valuetext={`${cur.label}, about ${cur.count} pictures, about ${money(cur.est.total)} and ${fmtMinutes(cur.est.minutes)} for the full book`} />
+      <div className="row small muted" style={{ justifyContent: 'space-between' }}>
+        <span>More pictures</span><span>Fewer pictures</span>
+      </div>
+      <div className="density-readout" aria-live="polite">
+        <div>
+          <span className="tiny faint">PICTURES</span>
+          <strong>{cur.label}</strong>
+          <span className="small muted">~{cur.count} illustrations</span>
+        </div>
+        <div>
+          <span className="tiny faint">FULL BOOK COST</span>
+          <strong>~{money(cur.est.total)}</strong>
+          <span className="small muted">text {money(cur.est.text)} + pictures {money(cur.est.imageCost)}</span>
+        </div>
+        <div>
+          <span className="tiny faint">TIME</span>
+          <strong>~{fmtMinutes(cur.est.minutes)}</strong>
+          <span className="small muted">text only: {fmtMinutes(textOnly.minutes)}</span>
+        </div>
+      </div>
+      <table className="density-table">
+        <caption className="sr-only">Cost and time for each density</caption>
+        <thead><tr><th>Density</th><th>Pictures</th><th>Cost</th><th>Time</th></tr></thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={r.id} className={i === idx ? 'on' : ''} onClick={() => onChange(r.id)}>
+              <td><button type="button" className="linkish" onClick={() => onChange(r.id)} aria-pressed={i === idx}>{r.label}</button></td>
+              <td className="mono">~{r.count}</td>
+              <td className="mono"><span className="cost-bar" style={{ width: `${(r.est.total / maxCost) * 60}px` }} />~{money(r.est.total)}</td>
+              <td className="mono">~{fmtMinutes(r.est.minutes)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <span className="hint">Using {imageModel(ai.images[0]).name} at about {money(imageModel(ai.images[0]).perImage)} a picture. Change models in <Link to="/settings?tab=models">Settings</Link>.</span>
     </div>
   );
 }

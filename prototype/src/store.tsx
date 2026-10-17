@@ -2,6 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react';
 import { BOOKS, EDITIONS, PROGRESS, SERIES, editionName } from './data/library';
 import type { Book, Edition, EditionSettings, Progress, Series, Version } from './data/types';
+import { DEFAULT_AI } from './data/models';
+import type { AiChoice, Provider } from './data/models';
 import Tuft from './components/Tuft';
 import type { TuftPose } from './components/Tuft';
 
@@ -40,6 +42,11 @@ function save(key: string, value: unknown) {
   }
 }
 
+// API keys belong to the person who adds them; runs they start are billed to their keys.
+// The prototype only keeps a masked hint in memory and never stores or sends the key itself.
+export type SavedKey = { hint: string; added: string; status: 'ok' | 'checking' };
+export type AiSettings = AiChoice & { keys: Partial<Record<Provider, SavedKey>>; shareWithFamily: boolean };
+
 type Toast = { id: number; text: string; pose: TuftPose };
 
 type Store = {
@@ -51,6 +58,8 @@ type Store = {
   pin: string;
   prefs: ViewPrefs;
   lock: { editionId: string; bookId: string } | null;
+  ai: AiSettings;
+  setAi: (p: Partial<AiSettings>) => void;
   setPrefs: (p: Partial<ViewPrefs>) => void;
   updateBook: (id: string, patch: Partial<Book>) => void;
   addBook: (b: Book) => void;
@@ -87,10 +96,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return null;
     }
   });
+  const [aiChoice, setAiChoice] = useState<AiChoice>(() => load('fb.models', DEFAULT_AI));
+  const [aiKeys, setAiKeys] = useState<Pick<AiSettings, 'keys' | 'shareWithFamily'>>({
+    keys: { gateway: { hint: '••••3f9a', added: '2026-10-17', status: 'ok' } },
+    shareWithFamily: false,
+  });
+  const ai = useMemo<AiSettings>(() => ({ ...aiChoice, ...aiKeys }), [aiChoice, aiKeys]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastId = useRef(0);
 
   useEffect(() => { save('fb.prefs', prefs); }, [prefs]);
+  useEffect(() => { save('fb.models', { text: aiChoice.text, images: aiChoice.images }); }, [aiChoice]);
 
   const toast = useCallback((text: string, pose: TuftPose = 'cheer') => {
     const id = ++toastId.current;
@@ -100,7 +116,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const store = useMemo<Store>(
     () => ({
-      books, series, editions, progress, approved, pin, prefs, lock,
+      books, series, editions, progress, approved, pin, prefs, lock, ai,
+      setAi: ({ text, images, keys, shareWithFamily }) => {
+        if (text || images) setAiChoice((c) => ({ text: text ?? c.text, images: images ?? c.images }));
+        if (keys || shareWithFamily !== undefined) setAiKeys((k) => ({ keys: keys ?? k.keys, shareWithFamily: shareWithFamily ?? k.shareWithFamily }));
+      },
       setPrefs: (p) => setPrefsState((prev) => ({ ...prev, ...p })),
       updateBook: (id, patch) => setBooks((bs) => bs.map((b) => (b.id === id ? { ...b, ...patch } : b))),
       addBook: (b) => setBooks((bs) => [...bs, b]),
@@ -144,7 +164,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       toast,
     }),
-    [books, series, editions, progress, approved, pin, prefs, lock, toast],
+    [books, series, editions, progress, approved, pin, prefs, lock, ai, toast],
   );
 
   return (

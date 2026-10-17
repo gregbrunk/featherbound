@@ -7,6 +7,7 @@ import Illustration, { SCENES } from '../components/Illustration';
 import type { Scene } from '../components/Illustration';
 import { Guide, Segmented, money } from '../components/ui';
 import { OZ_CHAPTERS } from '../data/library';
+import { estimate, fmtMinutes, imageCost, imageModel } from '../data/models';
 import { ozSoftenedV11 } from '../data/ozSoftened';
 
 type Scope = 'whole' | 'chapters' | 'passage' | 'pictures';
@@ -22,7 +23,7 @@ function friendly(guidance: string) {
 
 export default function Refine() {
   const { id } = useParams();
-  const { editions, books, updateEdition, toast } = useStore();
+  const { editions, books, updateEdition, toast, ai } = useStore();
   const nav = useNavigate();
   const edition = editions.find((e) => e.id === id);
   const book = books.find((b) => b.id === edition?.bookId);
@@ -40,8 +41,16 @@ export default function Refine() {
   const affected = scope === 'whole' ? book.chapters : scope === 'chapters' ? chapters.length : 1;
   const suggested: 'major' | 'minor' | 'patch' = scope === 'whole' ? 'major' : scope === 'chapters' && chapters.length > 1 ? 'minor' : 'patch';
   const level = levelOverride ?? suggested;
-  const perChapter = (book.words / 100_000) * 7.4 / book.chapters;
-  const cost = scope === 'pictures' ? scenes.length * 0.05 : perChapter * affected * 0.8 + 0.08;
+  const full = estimate(book, edition.settings, ai);
+  // Rewriting text reuses the Story Bible, so it costs a bit less than the first pass.
+  const textCost = scope === 'pictures' ? 0 : (full.text / book.chapters) * affected * 0.8 + 0.08;
+  const textMin = scope === 'pictures' ? 0 : (full.textMinutes / book.chapters) * affected * 0.8;
+  // Pictures in rewritten chapters are redrawn only when their scene changed (about half of them).
+  const redraw = scope === 'pictures' ? scenes.length
+    : edition.settings.picture.on ? Math.ceil((full.images / book.chapters) * affected * (scope === 'passage' ? 0.3 : 0.5)) : 0;
+  const pics = imageCost(redraw, ai);
+  const cost = textCost + pics.cost;
+  const minutes = Math.max(1, Math.round(textMin + pics.minutes));
   const looksLikeNewEdition = /\b(age|years? old|older|younger)\b|\bfor (my )?\d+\b/i.test(guidance);
   const ready = (scope === 'pictures' ? scenes.length > 0 : guidance.trim().length > 4) && (scope !== 'chapters' || chapters.length > 0) && (scope !== 'passage' || para !== null);
 
@@ -50,7 +59,7 @@ export default function Refine() {
     updateEdition(edition.id, {
       status: 'running',
       run: {
-        chapter: 0, of: Math.max(1, affected), spent: 0, estimate: +cost.toFixed(2), cap: Math.ceil(cost * 1.5 + 0.5),
+        chapter: 0, of: Math.max(1, affected), spent: 0, estimate: +cost.toFixed(2), cap: Math.ceil(cost * 1.5 + 0.5), minutes, images: redraw,
         level, guidance: scope === 'pictures' ? `Redraw ${scenes.length} picture(s). ${guidance}` : guidance, versionName: f.name,
         versionDescription: `${f.desc} ${scope === 'whole' ? 'Touched the whole book.' : scope === 'chapters' ? `Touched ${chapters.length} chapter(s).` : scope === 'passage' ? 'One passage in chapter 12.' : ''}`.trim(),
       },
@@ -161,7 +170,10 @@ export default function Refine() {
             <div className="est-total">
               <span className="tiny faint">ESTIMATE</span>
               <strong>~{money(cost)}</strong>
-              <span className="small muted">{affected} chapter{affected === 1 ? '' : 's'} · cap {money(Math.ceil(cost * 1.5 + 0.5))}</span>
+              <span className="small muted">
+                {scope === 'pictures' ? `${redraw} picture${redraw === 1 ? '' : 's'}` : `${affected} chapter${affected === 1 ? '' : 's'}`} · about {fmtMinutes(minutes)} · cap {money(Math.ceil(cost * 1.5 + 0.5))}
+              </span>
+              {redraw > 0 && scope !== 'pictures' && <span className="tiny faint">Includes ~{redraw} redrawn picture{redraw === 1 ? '' : 's'} ({money(pics.cost)}, {imageModel(ai.images[0]).name})</span>}
             </div>
           </div>
           <div className="row" style={{ justifyContent: 'flex-end' }}>
