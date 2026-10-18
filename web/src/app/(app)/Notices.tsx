@@ -12,10 +12,23 @@ const COPY: Record<Notice['notice'], { pose: TuftPose; text: (n: Notice) => stri
 };
 
 /** Notes from Tuft at the top of the library. Each clears when its edition is opened. */
-export default function Notices({ items }: { items: Notice[] }) {
-  if (!items.length) return null;
+export default function Notices({ items, budget }: { items: Notice[]; budget?: { budget: number; spent: number; projected: number; month: string } | null }) {
+  const budgetWarn = budget && budget.projected >= budget.budget * 0.9;
+  if (!items.length && !budgetWarn) return null;
+  const money = (n: number) => `$${n < 10 ? n.toFixed(2) : n.toFixed(0)}`;
   return (
     <section className="notices" aria-label="Updates">
+      {budgetWarn && (
+        <div className="card card-tinted notice-row">
+          <Tuft pose="worry" size={44} />
+          <p style={{ flex: 1, minWidth: 0 }}>
+            {budget.spent >= budget.budget
+              ? `You’ve spent ${money(budget.spent)} this ${budget.month}, past your ${money(budget.budget)} budget.`
+              : `${budget.month} is heading for about ${money(budget.projected)}, close to your ${money(budget.budget)} budget.`}
+          </p>
+          <Link href="/settings?tab=usage" className="btn btn-secondary btn-sm">See usage <Icon name="right" size={14} /></Link>
+        </div>
+      )}
       {items.map((n) => {
         const c = COPY[n.notice];
         return (

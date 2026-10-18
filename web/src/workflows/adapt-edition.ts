@@ -14,6 +14,7 @@ import { textCostUsd } from '@/lib/models';
 import { nextFreeVersion, passageWindow, refinePart, type RefineJob, type RefinePartResult } from '@/lib/refine';
 import { checkOriginalPicture, researchLook, scenePrompt, sheetPrompt } from '@/lib/art';
 import { picturesForChapter } from '@/lib/estimate';
+import { forReading } from '@/lib/compress';
 import { sniffImage } from '@/lib/export/xhtml';
 import { AllRefused, drawWithChain, type DrawRequest } from '@/lib/images';
 import { getModelChoices } from '@/lib/ai';
@@ -661,7 +662,8 @@ async function drawSheet(userId: string, editionId: string, runId: string | null
   try {
     const d = await drawWithChain(userId, runId ?? undefined, chain, Math.max(0, sheet.stickyModel ? chain.indexOf(sheet.stickyModel) : 0), req, 'character-sheet');
     const imageId = `sheet_${crypto.randomUUID()}`;
-    await writeFile(paths.bookFile(userId, ed.bookId, `images/${imageId}`), d.bytes, d.mediaType);
+    const small = (await forReading(d.bytes, 'sheet')) ?? d;
+    await writeFile(paths.bookFile(userId, ed.bookId, `images/${imageId}`), small.bytes, small.mediaType);
     await db.update(characterSheets).set({
       status: 'ready', imageId, model: d.model, stickyModel: d.model !== chain[0] ? d.model : sheet.stickyModel,
       costUsd: sql`${characterSheets.costUsd} + ${d.cost.toFixed(6)}`, updatedAt: new Date(),
@@ -723,7 +725,8 @@ async function drawScene(userId: string, editionId: string, runId: string, secti
   try {
     const d = await drawWithChain(userId, runId, chain, startAt, req);
     const imageId = `ill_${crypto.randomUUID()}`;
-    await writeFile(paths.bookFile(userId, ed.bookId, `images/${imageId}`), d.bytes, d.mediaType);
+    const small = (await forReading(d.bytes, 'picture')) ?? d;
+    await writeFile(paths.bookFile(userId, ed.bookId, `images/${imageId}`), small.bytes, small.mediaType);
     await db.insert(illustrations).values({
       id: imageId, userId, editionId, sectionId, runId, source, scene: m.scene, alt: m.alt, characters: cast.map((c) => c.name),
       model: d.model, refusedBy: d.refusedBy, costUsd: d.cost.toFixed(6),
@@ -796,7 +799,8 @@ async function importUpload(userId: string, editionId: string, runId: string, se
   const type = sniffImage(bytes);
   if (!type || type.type === 'image/svg+xml') throw new FatalError('The uploaded file isn’t a JPEG, PNG or WebP picture.');
   const next = `ill_${crypto.randomUUID()}`;
-  await writeFile(paths.bookFile(userId, ed.bookId, `images/${next}`), bytes, type.type);
+  const small = (await forReading(bytes)) ?? { bytes, mediaType: type.type };
+  await writeFile(paths.bookFile(userId, ed.bookId, `images/${next}`), small.bytes, small.mediaType);
   const [old] = await getDb().select().from(illustrations).where(eq(illustrations.id, imageId)).limit(1);
   await getDb().insert(illustrations).values({ id: next, userId, editionId, sectionId, runId, source: 'uploaded', scene: old?.scene ?? '', alt: old?.alt ?? '', characters: old?.characters ?? [] });
   return { imageId, next, cost: 0 };
@@ -827,7 +831,8 @@ async function redrawPicture(userId: string, editionId: string, runId: string, s
       aspect: '4:3',
     });
     const next = `ill_${crypto.randomUUID()}`;
-    await writeFile(paths.bookFile(userId, ed.bookId, `images/${next}`), d.bytes, d.mediaType);
+    const small = (await forReading(d.bytes, 'picture')) ?? d;
+    await writeFile(paths.bookFile(userId, ed.bookId, `images/${next}`), small.bytes, small.mediaType);
     await db.insert(illustrations).values({
       id: next, userId, editionId, sectionId, runId, source: 'drawn', scene: old?.scene ?? scene, alt: old?.alt ?? '', characters: old?.characters ?? [],
       model: d.model, refusedBy: d.refusedBy, costUsd: d.cost.toFixed(6),

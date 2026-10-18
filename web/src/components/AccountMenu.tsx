@@ -1,4 +1,6 @@
+import Link from 'next/link';
 import { requireAccount } from '@/lib/session';
+import Icon from './Icon';
 import { SignOutButton } from './AuthButtons';
 
 export default async function AccountMenu() {
@@ -12,6 +14,7 @@ export default async function AccountMenu() {
       </summary>
       <div className="popover">
         <p className="small muted ellipsis">{email}</p>
+        <Link href="/tour" className="btn btn-ghost btn-sm"><Icon name="sparkle" size={16} /> Take the tour</Link>
         <SignOutButton className="btn btn-secondary btn-sm" />
       </div>
     </details>

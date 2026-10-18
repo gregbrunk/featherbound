@@ -7,6 +7,7 @@ import type { Block } from '@/lib/import/types';
 import { getBook, listSections } from '@/lib/library';
 import { getRun, latestRun, listRunChapters, listSheets } from '@/lib/runs';
 import { requireAccount } from '@/lib/session';
+import { budgetStatus } from '@/lib/usage';
 import { readJson } from '@/lib/storage';
 import { clearNotice } from '../../../books/edition-actions';
 import SampleReview, { SamplesWriting } from './SampleReview';
@@ -83,6 +84,7 @@ export default async function SamplesPage({ params, searchParams }: { params: Pr
       samples={samples.map((x) => ({ ...x, why: x.number === firstNumber ? 'Voice check' : 'Hardest chapter' }))}
       chapters={sections.map((s, i) => ({ id: s.id, label: `${i + 1}. ${s.title}` }))}
       estimate={{ total: est.total, minutes: est.minutes, samples: est.samples, cap: Math.max(Number(ed.costCap), defaultCap(est.total)) }}
+      budget={await budgetStatus(userId)}
       pictures={settings.picture.on ? {
         look: ed.art?.look ?? null,
         error: ed.art?.error ?? null,

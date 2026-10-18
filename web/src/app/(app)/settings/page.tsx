@@ -152,6 +152,7 @@ function AboutTab() {
       <div className="stack-sm" style={{ flex: 1, minWidth: 240 }}>
         <h2>Featherbound</h2>
         <p className="muted">Books we love, made softer than 2-ply. A private library: a 10 Ply project.</p>
+        <div><Link href="/tour" className="btn btn-secondary btn-sm"><Icon name="sparkle" size={16} /> Take the tour again</Link></div>
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import { getBook, listSections } from '@/lib/library';
 import { getVersion, listVersionChapters, listVersions } from '@/lib/runs';
 import { requireAccount } from '@/lib/session';
 import Refine from './Refine';
+import { budgetStatus } from '@/lib/usage';
 
 // Reads the session on every request; see the note in (app)/layout.tsx.
 export const instant = false;
@@ -48,6 +49,7 @@ export default async function RefinePage({ params }: { params: Promise<{ id: str
       prices={{ whole: whole.cost, wholeMinutes: whole.minutes, passage: passage.cost, perChapterOverhead: 0.02, perPicture: estimatePictures(1, models) }}
       pictures={pictures}
       uploadPrefix={`${accountPrefix(userId)}uploads/`}
+      budget={await budgetStatus(userId)}
       capFor={{ whole: defaultCap(whole.cost * 1.3), passage: defaultCap(passage.cost * 1.5) }}
     />
   );

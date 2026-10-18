@@ -1,4 +1,6 @@
+import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
+import { HANDOFF_COOKIE, decodeLock } from '@/lib/handoff';
 import { getEdition } from '@/lib/analysis';
 import { getBook, getProgress, listBookmarks } from '@/lib/library';
 import { editionTarget, getVersion, listVersionChapters } from '@/lib/runs';
@@ -37,8 +39,11 @@ export default async function ReadEditionPage({ params, searchParams }: { params
       ? { sectionId: progress.sectionId, fraction: progress.fraction }
       : { sectionId: chapters[0].id, fraction: 0 };
 
+  const lock = decodeLock((await cookies()).get(HANDOFF_COOKIE)?.value);
   return (
     <Reader
+      handoff={{ editionId: ed.id, locked: lock?.editionId === ed.id }}
+      compareBase={`/api/books/${book.id}/sections`}
       bookId={book.id}
       textBase={`/api/editions/${ed.id}/sections`}
       textQuery={`?v=${encodeURIComponent(version.number)}`}

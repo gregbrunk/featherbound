@@ -15,6 +15,8 @@ import {
 import { defaultCap, densityLabel, densityTiers, estimateArt, estimateEdition, fmtMinutes, money, type BookSize, type ModelChoice } from '@/lib/estimate';
 import { imageModel, textModel } from '@/lib/models';
 import { saveDraftEdition } from '../../edition-actions';
+import BudgetNote from '@/components/BudgetNote';
+import type { BudgetStatus } from '@/lib/usage';
 
 const STEPS = [
   { key: 'who', title: 'Who’s it for?', pose: 'hello' as TuftPose },
@@ -28,7 +30,7 @@ const STEPS = [
 
 export type WizardBook = BookSize & { id: string; title: string; cover: CoverSpec; coverUrl?: string };
 
-export default function Wizard({ book, heat, analysed, seriesName, models, start, editingId }: {
+export default function Wizard({ book, heat, analysed, seriesName, models, start, editingId, budget }: {
   book: WizardBook;
   heat: HeatChapter[];
   analysed: boolean;
@@ -36,6 +38,7 @@ export default function Wizard({ book, heat, analysed, seriesName, models, start
   models: ModelChoice;
   start: { settings: EditionSettings; name: string; cap: number } | null;
   editingId?: string;
+  budget: BudgetStatus | null;
 }) {
   const [step, setStep] = useState(0);
   const [s, setS] = useState<EditionSettings>(() => (start ? structuredClone(start.settings) : defaultSettings(7, 'read-aloud')));
@@ -250,6 +253,7 @@ export default function Wizard({ book, heat, analysed, seriesName, models, start
                       <span className="hint" style={{ flex: 1, minWidth: 200 }}>If a chapter would push past this, I’ll pause at the end of the chapter before it and check with you.</span>
                     </div>
                   </div>
+                  <BudgetNote status={budget} cost={est.total} />
                   <p className="tiny faint">Pictures are drawn while later chapters are written, so the times overlap. Prices come from your chosen models (<Link href="/settings?tab=models">Settings → AI models</Link>).</p>
                 </div>
 

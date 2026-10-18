@@ -11,6 +11,8 @@ import { fmtMinutes, money } from '@/lib/estimate';
 import type { Block } from '@/lib/import/types';
 import { looksLikeNewEdition, nextFreeVersion, suggestedLevel } from '@/lib/versions';
 import { startRefine } from '../../../books/edition-actions';
+import BudgetNote from '@/components/BudgetNote';
+import type { BudgetStatus } from '@/lib/usage';
 
 type Scope = 'whole' | 'chapters' | 'passage' | 'pictures';
 type Picture = { sectionId: string; chapterNumber: number; imageId: string; alt: string };
@@ -25,7 +27,7 @@ const IDEAS = [
   'Keep more of the author’s own words.',
 ];
 
-export default function Refine({ book, edition, chapters, prices, capFor, pictures, uploadPrefix }: {
+export default function Refine({ book, edition, chapters, prices, capFor, pictures, uploadPrefix, budget }: {
   book: { id: string; title: string };
   edition: { id: string; name: string; version: string; versionName: string; existing: string[] };
   chapters: Chapter[];
@@ -33,6 +35,7 @@ export default function Refine({ book, edition, chapters, prices, capFor, pictur
   capFor: { whole: number; passage: number };
   pictures: Picture[];
   uploadPrefix: string;
+  budget: BudgetStatus | null;
 }) {
   const [ops, setOps] = useState<Record<string, Op>>({});
   const [scope, setScope] = useState<Scope>('chapters');
@@ -192,6 +195,7 @@ export default function Refine({ book, edition, chapters, prices, capFor, pictur
               <span className="hint" style={{ flex: 1, minWidth: 200 }}>I’ll pause and ask before going past it.</span>
             </div>
           </div>
+          <BudgetNote status={budget} cost={cost} />
           {message && <p className="small status-bad">{message}</p>}
           <div className="row" style={{ justifyContent: 'flex-end' }}>
             <Link href={`/books/${book.id}`} className="btn btn-ghost">Cancel</Link>

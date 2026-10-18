@@ -16,7 +16,7 @@
   /* Ink */
   --ink: #2b2140;
   --ink-soft: #5e5373;
-  --ink-faint: #8d84a0;
+  --ink-faint: #716a80; /* 4.5:1 on paper and parchment (WCAG AA) */
 
   /* Jewels */
   --plum: #4b2e83;
@@ -24,7 +24,7 @@
   --plum-soft: #ece4f8;
   --lavender: #b9a5e3;
   --gold: #d4a23a;
-  --gold-deep: #9c6f12;
+  --gold-deep: #835d0f; /* 4.5:1 on gold-soft */
   --gold-soft: #f6e3ae;
   --emerald: #2f7d62;
   --emerald-soft: #dcefe6;
@@ -245,7 +245,7 @@ img, svg { display: block; }
   white-space: nowrap;
 }
 .chip-gold { background: var(--gold-soft); color: var(--gold-deep); }
-.chip-emerald { background: var(--emerald-soft); color: var(--emerald); }
+.chip-emerald { background: var(--emerald-soft); color: #2b735a; }
 .chip-sapphire { background: var(--sapphire-soft); color: var(--sapphire); }
 .chip-ruby { background: var(--ruby-soft); color: var(--ruby); }
 .chip-plain { background: rgba(43, 33, 64, 0.06); color: var(--ink-soft); }

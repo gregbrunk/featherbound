@@ -36,6 +36,7 @@ export async function retryImport(bookId: string) {
 
 /** Read the original file again (e.g. after the importer improves) and review the result. */
 export async function reimportBook(bookId: string) {
+  await requireAccount();
   await retryImport(bookId);
   redirect(`/books/${bookId}/review`);
 }
