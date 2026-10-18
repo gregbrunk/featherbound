@@ -11,12 +11,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (!account) return new Response('Unauthorized', { status: 401 });
   const { id, sid } = await params;
   const ed = await getEdition(account.userId, id);
-  const v = new URL(req.url).searchParams.get('v') ?? ed?.currentVersion;
+  const params2 = new URL(req.url).searchParams;
+  const v = params2.get('v') ?? ed?.currentVersion;
+  // raw=1 skips the recap, so block indexes match the stored chapter (the refine screen needs that).
+  const raw = params2.get('raw') === '1';
   const version = ed && v ? await getVersion(account.userId, ed.id, v) : null;
   const entry = version?.manifest.find((m) => m.sectionId === sid);
   const chapter = entry && (await getEditionChapter(account.userId, entry.chapterId));
   if (!chapter) return new Response('Not found', { status: 404 });
   const { blocks } = await readJson<{ blocks: Block[] }>(chapter.textPath);
-  const out: Block[] = chapter.recap ? [{ type: 'quote', html: `<em>The story so far…</em> ${chapter.recap}` }, ...blocks] : blocks;
+  const out: Block[] = chapter.recap && !raw ? [{ type: 'quote', html: `<em>The story so far…</em> ${chapter.recap}` }, ...blocks] : blocks;
   return Response.json({ title: chapter.kidTitle ?? chapter.title, blocks: out }, { headers: { 'Cache-Control': 'private, max-age=31536000, immutable' } });
 }

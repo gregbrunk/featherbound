@@ -12,10 +12,10 @@ import { CATEGORIES, LEVEL_LABEL, bandFor, editionSettingsSchema, gradeLevelFor 
 import { densityLabel, estimateAnalysis, fmtMinutes, money, type BookSize } from '@/lib/estimate';
 import { bookTarget, getBook, getProgress, getSeries, listSections, listSeries, type BookRow, type SectionRow } from '@/lib/library';
 import { textModel } from '@/lib/models';
-import { listVersions, type VersionRow } from '@/lib/runs';
+import { latestRun, listVersions, type RunRow, type VersionRow } from '@/lib/runs';
 import { requireAccount } from '@/lib/session';
 import { DeleteBookButton, EditDetailsButton, ReimportButton } from './BookActions';
-import { AnalysisProgress, DeleteEditionButton, MakeSamplesButton, StartAnalysisButton } from './EditionParts';
+import { AnalysisProgress, DeleteEditionButton, DownloadButton, MakeSamplesButton, StartAnalysisButton } from './EditionParts';
 
 // Reads the session on every request; see the note in (app)/layout.tsx.
 export const instant = false;
@@ -44,7 +44,10 @@ export default async function BookPage({ params, searchParams }: { params: Promi
     listEditions(userId, book.id),
     getModelChoices(userId),
   ]);
-  const versions = (await Promise.all(eds.filter((e) => e.currentVersion).map((e) => listVersions(userId, e.id)))).flat();
+  const [versions, refining] = await Promise.all([
+    Promise.all(eds.filter((e) => e.currentVersion).map((e) => listVersions(userId, e.id))).then((v) => v.flat()),
+    Promise.all(eds.filter((e) => e.currentVersion).map((e) => latestRun(userId, e.id, 'refine'))).then((r) => r.filter((x): x is RunRow => x !== null && (x.status === 'running' || x.status === 'paused-cap'))),
+  ]);
   const chapters = sections.filter((s) => s.include);
   const size: BookSize = { words: book.words, chapters: chapters.length };
   const coverUrl = book.coverPath ? `/api/books/${book.id}/cover?v=${encodeURIComponent(book.coverPath.split('/').pop() ?? '')}` : undefined;
@@ -112,7 +115,7 @@ export default async function BookPage({ params, searchParams }: { params: Promi
           <div className="row-wrap" style={{ marginTop: 6 }}>
             <Link href={`/books/${book.id}/new`} className="btn btn-primary"><Icon name="wand" size={18} /> New softened edition</Link>
             <Link href={`/read/book/${book.id}`} className="btn btn-secondary"><Icon name="book" size={18} /> {progress ? 'Keep reading' : 'Read original'}</Link>
-            <a href={`/api/books/${book.id}/original`} className="btn btn-ghost"><Icon name="download" size={18} /> Download original</a>
+            <DownloadButton target="book" id={book.id} title={`${book.title} · original`} originalName={book.fileName} />
           </div>
         </div>
       </section>
@@ -138,7 +141,7 @@ export default async function BookPage({ params, searchParams }: { params: Promi
               </div>
             )}
             {eds.map((e) => <EditionCard key={e.id} edition={e} book={book} size={size} coverUrl={coverUrl} canSample={complete && Boolean(bible)}
-              version={versions.find((v) => v.editionId === e.id && v.number === e.currentVersion)} />)}
+              versions={versions.filter((v) => v.editionId === e.id)} refining={refining.find((r) => r.editionId === e.id)} />)}
           </>
         )}
 
@@ -193,7 +196,10 @@ const STATUS_LABEL: Record<EditionRow['status'], string> = {
   failed: 'Something went wrong',
 };
 
-function EditionCard({ edition: e, book, size, coverUrl, version, canSample }: { edition: EditionRow; book: BookRow; size: BookSize; coverUrl?: string; version?: VersionRow; canSample: boolean }) {
+function EditionCard({ edition: e, book, size, coverUrl, versions, refining, canSample }: {
+  edition: EditionRow; book: BookRow; size: BookSize; coverUrl?: string; versions: VersionRow[]; refining?: RunRow; canSample: boolean;
+}) {
+  const version = versions.find((v) => v.number === e.currentVersion);
   const parsed = editionSettingsSchema.safeParse(e.settings);
   if (!parsed.success) return null;
   const s = parsed.data;
@@ -206,8 +212,11 @@ function EditionCard({ edition: e, book, size, coverUrl, version, canSample }: {
           <div className="row-wrap">
             {version && <span className="badge-version">v{version.number}</span>}
             {version && <span className="small" style={{ fontWeight: 800, color: 'var(--plum)' }}>“{version.name}”</span>}
+            {refining && <Link href={`/editions/${e.id}/progress`} className={`chip ${refining.status === 'paused-cap' ? 'chip-ruby' : ''}`} style={{ textDecoration: 'none' }}>{refining.status === 'paused-cap' ? 'Refinement paused at cap' : 'Refining…'}</Link>}
             {e.status !== 'ready' && <span className={`chip ${e.status === 'draft' ? 'chip-plain' : e.status === 'failed' || e.status === 'paused-cap' ? 'chip-ruby' : 'chip-gold'}`}>{STATUS_LABEL[e.status]}</span>}
-            {e.estimate && <span className="small muted">About {money(e.estimate.total)} · cap {money(Number(e.costCap))}</span>}
+            {version
+              ? <span className="small muted">Cost {money(versions.reduce((n, v) => n + Number(v.costUsd), 0))} so far</span>
+              : e.estimate && <span className="small muted">About {money(e.estimate.total)} · cap {money(Number(e.costCap))}</span>}
             <span className="small faint">Made {fmtDay(e.createdAt)}</span>
           </div>
         </div>
@@ -254,6 +263,14 @@ function EditionCard({ edition: e, book, size, coverUrl, version, canSample }: {
       )}
 
       <footer className="edition-actions">
+        {e.status === 'ready' && (
+          <>
+            {!refining && <Link href={`/editions/${e.id}/refine`} className="btn btn-secondary btn-sm"><Icon name="sparkle" size={16} /> Refine</Link>}
+            <Link href={`/editions/${e.id}/history`} className="btn btn-secondary btn-sm"><Icon name="history" size={16} /> Versions ({versions.length})</Link>
+            <DownloadButton small target="edition" id={e.id} title={`${book.title} · ${e.name}`}
+              versions={versions.map((v) => ({ number: v.number, name: v.name, current: v.number === e.currentVersion }))} />
+          </>
+        )}
         {e.status === 'draft' && (
           <Link href={`/books/${book.id}/new?edit=${e.id}`} className="btn btn-secondary btn-sm"><Icon name="sliders" size={16} /> Change settings</Link>
         )}

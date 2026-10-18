@@ -1,0 +1,1 @@
+ALTER TABLE "edition_runs" ADD COLUMN "refine" jsonb;

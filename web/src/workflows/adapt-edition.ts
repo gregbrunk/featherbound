@@ -4,13 +4,14 @@ import { createHook, FatalError } from 'workflow';
 import { z } from 'zod';
 import { getDb } from '@/db';
 import { editionChapters, editionRuns, editions, editionVersions, type ChangeNote } from '@/db/schema';
-import { AlignmentError, adaptPart, assemble, bibleText, chunkIndexes, tailOf, type ChapterJob, type PartResult } from '@/lib/adapt';
+import { AlignmentError, adaptPart, assemble, bibleText, blockWords, chunkIndexes, tailOf, type ChapterJob, type PartResult } from '@/lib/adapt';
 import { NoKeyError, getTextModel, recordAiCall } from '@/lib/ai';
 import { getReadyAnalysis, getStoryBible, listSectionAnalyses } from '@/lib/analysis';
 import { editionSettingsSchema } from '@/lib/editions';
 import type { Block } from '@/lib/import/types';
 import { getBook, listSections } from '@/lib/library';
 import { textCostUsd } from '@/lib/models';
+import { nextFreeVersion, passageWindow, refinePart, type RefineJob, type RefinePartResult } from '@/lib/refine';
 import { readJson, writeContentAddressed } from '@/lib/storage';
 
 // Writes an edition: a round of sample chapters, or the whole book. Chapters run a few at a
@@ -31,7 +32,7 @@ export async function adaptEdition(userId: string, editionId: string, runId: str
     let i = 0;
     while (i < plan.todo.length) {
       const batch = plan.todo.slice(i, i + BATCH);
-      if (plan.kind === 'full') {
+      if (plan.kind !== 'samples') {
         const gate = await checkCap(runId, batch.reduce((n, c) => n + c.words, 0), plan.ratePerWord);
         if (!gate.ok) {
           const decision = await waitForParent(userId, editionId, runId, gate.needed);
@@ -42,8 +43,13 @@ export async function adaptEdition(userId: string, editionId: string, runId: str
           continue;
         }
       }
-      await Promise.all(batch.map((c) => writeChapter(userId, editionId, runId, c.sectionId, null)));
+      await Promise.all(batch.map((c) => (plan.kind === 'refine' ? refineChapter(userId, editionId, runId, c.sectionId) : writeChapter(userId, editionId, runId, c.sectionId, null))));
       i += BATCH;
+    }
+
+    if (plan.kind === 'refine') {
+      await publishRefinedVersion(userId, editionId, runId);
+      return { ok: true as const };
     }
 
     if (plan.kind === 'samples') {
@@ -83,6 +89,15 @@ async function writeChapter(userId: string, editionId: string, runId: string, se
     parts.push(await writePart(userId, runId, prep.job, prep.chunks, ci, ci ? tailOf(parts[ci - 1]) : []));
   }
   await saveChapter(userId, editionId, runId, sectionId, prep.job, prep.chunks, parts, prep.position, fix);
+}
+
+/** Revise one chapter of the base version, part by part, then save it as a new chapter. */
+async function refineChapter(userId: string, editionId: string, runId: string, sectionId: string) {
+  const prep = await prepareRefine(userId, editionId, runId, sectionId);
+  if (!prep) return;
+  const parts: (RefinePartResult & { cost: number })[] = [];
+  for (const idx of prep.chunks) parts.push(await writeRefinePart(userId, runId, prep.job, idx, prep.only));
+  await saveRefined(userId, editionId, runId, sectionId, prep, parts);
 }
 
 // ── Steps ──────────────────────────────────────────────────────────────────────────
@@ -126,7 +141,7 @@ async function planRun(userId: string, editionId: string, runId: string, reuseFr
   await db.update(editionRuns).set({ status: 'running', error: null, stage: 'writing', chaptersDone: done.size }).where(eq(editionRuns.id, runId));
   await db
     .update(editions)
-    .set({ status: run.kind === 'samples' ? 'making-samples' : 'running', notice: null, updatedAt: new Date() })
+    .set({ ...(run.kind === 'refine' ? {} : { status: run.kind === 'samples' ? 'making-samples' as const : 'running' as const }), notice: null, updatedAt: new Date() })
     .where(eq(editions.id, editionId));
 
   const totalWords = run.sectionIds.reduce((n, id) => n + (words.get(id) ?? 0), 0);
@@ -155,20 +170,20 @@ async function checkCap(runId: string, nextWords: number, estimatedRate: number)
 
 async function markPaused(editionId: string, runId: string, token: string, needed: number) {
   'use step';
-  await getDb().update(editionRuns).set({ status: 'paused-cap', hookToken: token, stage: `needs ${needed.toFixed(2)} more` }).where(eq(editionRuns.id, runId));
-  await getDb().update(editions).set({ status: 'paused-cap', notice: 'paused-cap', noticeAt: new Date() }).where(eq(editions.id, editionId));
+  const [run] = await getDb().update(editionRuns).set({ status: 'paused-cap', hookToken: token, stage: `needs ${needed.toFixed(2)} more` }).where(eq(editionRuns.id, runId)).returning({ kind: editionRuns.kind });
+  await getDb().update(editions).set({ ...(run.kind === 'refine' ? {} : { status: 'paused-cap' as const }), notice: 'paused-cap', noticeAt: new Date() }).where(eq(editions.id, editionId));
 }
 
 async function markResumed(editionId: string, runId: string, cap: number) {
   'use step';
-  await getDb().update(editionRuns).set({ status: 'running', hookToken: null, capUsd: cap.toFixed(2), stage: 'writing' }).where(eq(editionRuns.id, runId));
-  await getDb().update(editions).set({ status: 'running', costCap: cap.toFixed(2), notice: null }).where(eq(editions.id, editionId));
+  const [run] = await getDb().update(editionRuns).set({ status: 'running', hookToken: null, capUsd: cap.toFixed(2), stage: 'writing' }).where(eq(editionRuns.id, runId)).returning({ kind: editionRuns.kind });
+  await getDb().update(editions).set({ ...(run.kind === 'refine' ? {} : { status: 'running' as const, costCap: cap.toFixed(2) }), notice: null }).where(eq(editions.id, editionId));
 }
 
 async function stopRun(editionId: string, runId: string) {
   'use step';
-  await getDb().update(editionRuns).set({ status: 'stopped', hookToken: null, finishedAt: new Date() }).where(eq(editionRuns.id, runId));
-  await getDb().update(editions).set({ status: 'paused-cap', notice: null }).where(eq(editions.id, editionId));
+  const [run] = await getDb().update(editionRuns).set({ status: 'stopped', hookToken: null, finishedAt: new Date() }).where(eq(editionRuns.id, runId)).returning({ kind: editionRuns.kind });
+  await getDb().update(editions).set({ ...(run.kind === 'refine' ? {} : { status: 'paused-cap' as const }), notice: null }).where(eq(editions.id, editionId));
 }
 
 async function prepareChapter(userId: string, editionId: string, runId: string, sectionId: string, fix: string | null) {
@@ -364,6 +379,149 @@ async function publishFirstVersion(userId: string, editionId: string, runId: str
 
 async function failRun(editionId: string, runId: string, error: string) {
   'use step';
-  await getDb().update(editionRuns).set({ status: 'failed', error: error.slice(0, 500), finishedAt: new Date() }).where(eq(editionRuns.id, runId));
-  await getDb().update(editions).set({ status: 'failed', notice: 'failed', noticeAt: new Date() }).where(eq(editions.id, editionId));
+  const [run] = await getDb().update(editionRuns).set({ status: 'failed', error: error.slice(0, 500), finishedAt: new Date() }).where(eq(editionRuns.id, runId)).returning({ kind: editionRuns.kind });
+  await getDb().update(editions).set({ ...(run?.kind === 'refine' ? {} : { status: 'failed' as const }), notice: 'failed', noticeAt: new Date() }).where(eq(editions.id, editionId));
+}
+
+// ── Refinement steps ─────────────────────────────────────────────────────────────
+
+type RefinePrep = {
+  job: RefineJob;
+  chunks: number[][];
+  only?: number[];
+  base: { kidTitle: string | null; recap: string | null; changeNotes: ChangeNote[]; summary: string; names: string[]; position: number; title: string; originalWords: number };
+};
+
+async function prepareRefine(userId: string, editionId: string, runId: string, sectionId: string): Promise<RefinePrep | null> {
+  'use step';
+  const db = getDb();
+  const [have] = await db.select({ id: editionChapters.id }).from(editionChapters).where(and(eq(editionChapters.runId, runId), eq(editionChapters.sectionId, sectionId))).limit(1);
+  if (have) return null;
+  const [run] = await db.select().from(editionRuns).where(eq(editionRuns.id, runId)).limit(1);
+  const spec = run.refine;
+  if (!spec) throw new FatalError('This refinement has no instructions.');
+  const [ed] = await db.select().from(editions).where(eq(editions.id, editionId)).limit(1);
+  const [version] = await db.select().from(editionVersions).where(and(eq(editionVersions.editionId, editionId), eq(editionVersions.number, spec.baseVersion))).limit(1);
+  const entry = version?.manifest.find((m) => m.sectionId === sectionId);
+  if (!entry) throw new FatalError('That chapter isn’t in the version being refined.');
+  const [chapter] = await db.select().from(editionChapters).where(eq(editionChapters.id, entry.chapterId)).limit(1);
+  const [sections, bible] = await Promise.all([listSections(userId, ed.bookId), getStoryBible(userId, ed.bookId)]);
+  const chapters = sections.filter((s) => s.include);
+  const section = chapters.find((s) => s.id === sectionId);
+  if (!section || !chapter) throw new FatalError('That chapter is no longer in the book.');
+  const [orig, cur] = await Promise.all([readJson<{ blocks: Block[] }>(section.textPath), readJson<{ blocks: Block[] }>(chapter.textPath)]);
+  if (orig.blocks.length !== cur.blocks.length) throw new FatalError('This chapter changed since it was adapted (was the book re-imported?), so it can’t be refined in place.');
+
+  const passage = spec.scope === 'passage' && spec.passage?.sectionId === sectionId ? spec.passage.index : null;
+  const chunks = passage !== null ? [passageWindow(cur.blocks, passage)] : chunkIndexes(cur.blocks);
+  return {
+    job: {
+      settings: editionSettingsSchema.parse(ed.settings),
+      bible: bible ? bibleText(bible.data) : '',
+      guidance: ed.sampleGuidance,
+      request: spec.guidance,
+      chapterNumber: chapters.indexOf(section) + 1,
+      title: section.title,
+      original: orig.blocks,
+      current: cur.blocks,
+    },
+    chunks: chunks.filter((c) => c.length),
+    only: passage !== null ? [passage] : undefined,
+    base: {
+      kidTitle: chapter.kidTitle, recap: chapter.recap, changeNotes: chapter.changeNotes, summary: chapter.summary,
+      names: chapter.names, position: chapter.position, title: chapter.title, originalWords: chapter.originalWords,
+    },
+  };
+}
+
+async function writeRefinePart(userId: string, runId: string, job: RefineJob, idx: number[], only?: number[]) {
+  'use step';
+  let model;
+  try {
+    model = await getTextModel(userId);
+  } catch (e) {
+    if (e instanceof NoKeyError) throw new FatalError(e.message);
+    throw e;
+  }
+  const record = async (u: { inputTokens: number; outputTokens: number; ms: number }, error?: string) => {
+    const cost = textCostUsd(model.modelId, u.inputTokens, u.outputTokens);
+    await recordAiCall({ userId, runId, kind: 'refine', model: model.modelId, keySource: model.keySource, inputTokens: u.inputTokens, outputTokens: u.outputTokens, costUsd: cost, ms: u.ms, error });
+    await getDb().update(editionRuns).set({ spentUsd: sql`${editionRuns.spentUsd} + ${cost.toFixed(6)}` }).where(eq(editionRuns.id, runId));
+    return cost;
+  };
+  try {
+    const { part, usage } = await refinePart(model.model, job, idx, only);
+    return { ...part, cost: await record(usage) };
+  } catch (e) {
+    const usage = (e as { usage?: { inputTokens: number; outputTokens: number; ms: number } }).usage;
+    await record(usage ?? { inputTokens: 0, outputTokens: 0, ms: 0 }, String(e).slice(0, 500));
+    throw e;
+  }
+}
+writeRefinePart.maxRetries = 2;
+
+async function saveRefined(userId: string, editionId: string, runId: string, sectionId: string, prep: RefinePrep, parts: (RefinePartResult & { cost: number })[]) {
+  'use step';
+  const out = prep.job.current.map((b) => ({ ...b }));
+  prep.chunks.forEach((idx, ci) => idx.forEach((bi, k) => { (out[bi] as { html: string }).html = parts[ci].paragraphs[k]; }));
+  const textPath = await writeContentAddressed(userId, { title: prep.job.title, blocks: out });
+  const db = getDb();
+  await db.insert(editionChapters).values({
+    userId, editionId, runId, sectionId, position: prep.base.position,
+    title: prep.base.title, kidTitle: prep.base.kidTitle, recap: prep.base.recap, textPath,
+    words: blockWords(out), originalWords: prep.base.originalWords,
+    changeNotes: [...prep.base.changeNotes, ...parts.flatMap((p) => p.changeNotes)],
+    summary: prep.base.summary, names: prep.base.names,
+    costUsd: parts.reduce((n, p) => n + p.cost, 0).toFixed(6),
+  });
+  await db
+    .update(editionRuns)
+    .set({ chaptersDone: sql`(select count(*) from ${editionChapters} where ${editionChapters.runId} = ${runId})` })
+    .where(eq(editionRuns.id, runId));
+}
+
+/** The new version: the base version's chapters, with the refined ones swapped in. */
+async function publishRefinedVersion(userId: string, editionId: string, runId: string) {
+  'use step';
+  const db = getDb();
+  const [run] = await db.select().from(editionRuns).where(eq(editionRuns.id, runId)).limit(1);
+  const spec = run.refine!;
+  const [ed] = await db.select().from(editions).where(eq(editions.id, editionId)).limit(1);
+  const versions = await db.select().from(editionVersions).where(eq(editionVersions.editionId, editionId));
+  const base = versions.find((v) => v.number === spec.baseVersion);
+  if (!base) throw new FatalError('The version being refined is gone.');
+  const refined = await db.select().from(editionChapters).where(eq(editionChapters.runId, runId));
+  const bySection = new Map(refined.map((c) => [c.sectionId, c.id]));
+  const manifest = base.manifest.map((m) => ({ sectionId: m.sectionId, chapterId: bySection.get(m.sectionId) ?? m.chapterId }));
+  const number = nextFreeVersion(versions.map((v) => v.number), spec.baseVersion, spec.level);
+  const book = await getBook(userId, ed.bookId);
+
+  const notes = refined.flatMap((c) => c.changeNotes.filter((n) => n.level === 'Refine')).slice(0, 40).map((n) => n.note).join('\n');
+  let name = 'Gentle Touches';
+  let description = `Refined ${refined.length === 1 ? 'one chapter' : `${refined.length} chapters`} following your guidance.`;
+  try {
+    const model = await getTextModel(userId);
+    const t0 = Date.now();
+    const res = await generateText({
+      model: model.model,
+      reasoning: 'low',
+      output: Output.object({ schema: versionSchema }),
+      prompt: `Name version ${number} of a gentler children's edition of "${book?.title}" (${ed.name}). The parent asked: "${spec.guidance}". ${refined.length} chapter(s) changed. Changes made:\n${notes}`,
+    });
+    const u = res.usage;
+    const cost = textCostUsd(model.modelId, u.inputTokens ?? 0, u.outputTokens ?? 0);
+    await recordAiCall({ userId, runId, kind: 'version-name', model: model.modelId, keySource: model.keySource, inputTokens: u.inputTokens ?? 0, outputTokens: u.outputTokens ?? 0, costUsd: cost, ms: Date.now() - t0 });
+    await db.update(editionRuns).set({ spentUsd: sql`${editionRuns.spentUsd} + ${cost.toFixed(6)}` }).where(eq(editionRuns.id, runId));
+    name = res.output.name.slice(0, 60);
+    description = res.output.description.slice(0, 400);
+  } catch {
+    // Keep the friendly defaults.
+  }
+
+  const [fresh] = await db.select({ spent: editionRuns.spentUsd }).from(editionRuns).where(eq(editionRuns.id, runId)).limit(1);
+  await db.insert(editionVersions).values({
+    userId, editionId, number, name, description, level: spec.level, guidance: spec.guidance, runId, manifest, costUsd: fresh?.spent ?? run.spentUsd,
+  });
+  await db.update(editionRuns).set({ status: 'ready', stage: null, finishedAt: new Date() }).where(eq(editionRuns.id, runId));
+  await db.update(editions).set({ status: 'ready', currentVersion: number, notice: 'ready', noticeAt: new Date(), updatedAt: new Date() }).where(eq(editions.id, editionId));
 }

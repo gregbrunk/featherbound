@@ -5,14 +5,14 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { resumeHook, start } from 'workflow/api';
 import { getDb } from '@/db';
-import { bookAnalyses, editionRuns, editions, type SampleComment } from '@/db/schema';
+import { bookAnalyses, editionRuns, editions, type SampleComment, type VersionLevel } from '@/db/schema';
 import { guidanceFrom } from '@/lib/adapt';
 import { NoKeyError, getModelChoices, getTextModel } from '@/lib/ai';
 import { getEdition, getLatestAnalysis, getReadyAnalysis, getStoryBible, hardestSectionId, listSectionAnalyses } from '@/lib/analysis';
 import { editionName, editionSettingsSchema, type EditionSettings } from '@/lib/editions';
-import { estimateEdition, estimateSamples } from '@/lib/estimate';
+import { PASSAGE_WORDS, estimateEdition, estimateRefine, estimateSamples } from '@/lib/estimate';
 import { getBook, listSections } from '@/lib/library';
-import { getRun, latestRun } from '@/lib/runs';
+import { getRun, getVersion, latestRun } from '@/lib/runs';
 import { requireAccount } from '@/lib/session';
 import { adaptEdition, type CapDecision } from '@/workflows/adapt-edition';
 import { analyzeBook } from '@/workflows/analyze-book';
@@ -221,4 +221,68 @@ export async function deleteEdition(bookId: string, editionId: string) {
   const { userId } = await requireAccount();
   await getDb().delete(editions).where(and(eq(editions.userId, userId), eq(editions.id, editionId), eq(editions.bookId, bookId)));
   revalidatePath(`/books/${bookId}`);
+}
+
+export type RefineInput = {
+  scope: 'whole' | 'chapters' | 'passage';
+  sectionIds: string[];
+  passage?: { sectionId: string; index: number };
+  guidance: string;
+  level: VersionLevel;
+  capUsd: number;
+};
+
+/** Make a new version of a ready edition that follows one request. Only the chosen chapters are rewritten. */
+export async function startRefine(editionId: string, input: RefineInput): Promise<Result> {
+  const { userId } = await requireAccount();
+  const ed = await getEdition(userId, editionId);
+  if (!ed || !ed.currentVersion) return { ok: false, message: 'This edition has no finished version to refine yet.' };
+  const book = await getBook(userId, ed.bookId);
+  if (!book) return { ok: false, message: 'Book not found.' };
+  const check = await ready(userId, ed.bookId);
+  if (!check.ok) return check;
+  const busy = await latestRun(userId, editionId);
+  if (busy && (busy.status === 'running' || busy.status === 'paused-cap')) return { ok: false, message: 'This edition is already being worked on. Wait for that to finish first.' };
+
+  const guidance = input.guidance.trim().slice(0, 2000);
+  if (guidance.length < 5) return { ok: false, message: 'Tell me what to change.' };
+  if (!['major', 'minor', 'patch'].includes(input.level)) return { ok: false, message: 'Pick a version level.' };
+  const version = await getVersion(userId, editionId, ed.currentVersion);
+  if (!version) return { ok: false, message: 'The current version is missing.' };
+  const inVersion = new Set(version.manifest.map((m) => m.sectionId));
+
+  let sectionIds: string[];
+  if (input.scope === 'whole') sectionIds = version.manifest.map((m) => m.sectionId);
+  else if (input.scope === 'chapters') sectionIds = input.sectionIds.filter((id) => inVersion.has(id));
+  else sectionIds = input.passage && inVersion.has(input.passage.sectionId) ? [input.passage.sectionId] : [];
+  if (!sectionIds.length) return { ok: false, message: input.scope === 'passage' ? 'Pick the paragraph to change.' : 'Pick at least one chapter.' };
+
+  const sections = await listSections(userId, ed.bookId);
+  const words = input.scope === 'passage' ? PASSAGE_WORDS : sections.filter((s) => sectionIds.includes(s.id)).reduce((n, s) => n + s.words, 0);
+  const est = estimateRefine({ words: book.words, chapters: book.chapterCount }, words, sectionIds.length, await getModelChoices(userId));
+  const cap = Math.round(Number(input.capUsd) * 100) / 100;
+  if (!Number.isFinite(cap) || cap < 0.5 || cap > 10_000) return { ok: false, message: 'Pick a cost cap between $0.50 and $10,000.' };
+
+  const [run] = await getDb()
+    .insert(editionRuns)
+    .values({
+      userId, editionId, kind: 'refine', sectionIds, estimateUsd: est.cost.toFixed(4), capUsd: cap.toFixed(2),
+      refine: { scope: input.scope, guidance, level: input.level, baseVersion: ed.currentVersion, passage: input.scope === 'passage' ? input.passage : undefined },
+    })
+    .returning({ id: editionRuns.id });
+  const wf = await start(adaptEdition, [userId, editionId, run.id, null]);
+  await getDb().update(editionRuns).set({ workflowRunId: wf.runId }).where(eq(editionRuns.id, run.id));
+  redirect(`/editions/${editionId}/progress`);
+}
+
+/** Roll back (or forward): make another version the one people read and download. Nothing is deleted. */
+export async function makeVersionCurrent(editionId: string, number: string): Promise<Result> {
+  const { userId } = await requireAccount();
+  const ed = await getEdition(userId, editionId);
+  const version = ed && (await getVersion(userId, editionId, number));
+  if (!ed || !version) return { ok: false, message: 'Version not found.' };
+  await getDb().update(editions).set({ currentVersion: number, updatedAt: new Date() }).where(and(eq(editions.userId, userId), eq(editions.id, editionId)));
+  revalidatePath(`/editions/${editionId}/history`);
+  revalidatePath(`/books/${ed.bookId}`);
+  return { ok: true };
 }

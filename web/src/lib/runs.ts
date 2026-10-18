@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, ne } from 'drizzle-orm';
 import { getDb } from '@/db';
 import { editionChapters, editionRuns, editionVersions } from '@/db/schema';
 
@@ -13,11 +13,13 @@ export async function getRun(userId: string, runId: string) {
   return row ?? null;
 }
 
-export async function latestRun(userId: string, editionId: string, kind?: 'samples' | 'full') {
+/** Newest run of an edition; 'writing' means a full run or a refinement (anything but samples). */
+export async function latestRun(userId: string, editionId: string, kind?: 'samples' | 'full' | 'refine' | 'writing') {
+  const filter = !kind ? [] : kind === 'writing' ? [ne(editionRuns.kind, 'samples')] : [eq(editionRuns.kind, kind)];
   const [row] = await getDb()
     .select()
     .from(editionRuns)
-    .where(and(eq(editionRuns.userId, userId), eq(editionRuns.editionId, editionId), ...(kind ? [eq(editionRuns.kind, kind)] : [])))
+    .where(and(eq(editionRuns.userId, userId), eq(editionRuns.editionId, editionId), ...filter))
     .orderBy(desc(editionRuns.startedAt))
     .limit(1);
   return row ?? null;
@@ -33,6 +35,17 @@ export async function listRunChapters(userId: string, runId: string) {
     .from(editionChapters)
     .where(and(eq(editionChapters.userId, userId), eq(editionChapters.runId, runId)))
     .orderBy(asc(editionChapters.position));
+}
+
+/** The chapters a version's manifest points at, in manifest order. */
+export async function listVersionChapters(userId: string, manifest: { sectionId: string; chapterId: string }[]) {
+  if (!manifest.length) return [];
+  const rows = await getDb()
+    .select()
+    .from(editionChapters)
+    .where(and(eq(editionChapters.userId, userId), inArray(editionChapters.id, manifest.map((m) => m.chapterId))));
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  return manifest.flatMap((m) => byId.get(m.chapterId) ?? []);
 }
 
 export async function getEditionChapter(userId: string, chapterId: string) {

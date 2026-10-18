@@ -16,7 +16,7 @@ export default async function ProgressPage({ params }: { params: Promise<{ id: s
   if (!ed) notFound();
   const book = await getBook(userId, ed.bookId);
   if (!book) notFound();
-  const run = await latestRun(userId, ed.id, 'full');
+  const run = await latestRun(userId, ed.id, 'writing');
   if (!run) redirect(`/editions/${ed.id}/samples`);
   if (ed.notice && ed.notice !== 'samples-ready') await clearNotice(ed.id);
 
@@ -36,6 +36,7 @@ export default async function ProgressPage({ params }: { params: Promise<{ id: s
     <RunProgress
       book={{ id: book.id, title: book.title }}
       edition={{ id: ed.id, name: ed.name }}
+      refine={run.kind === 'refine' ? run.refine : null}
       run={{
         id: run.id, status: run.status, stage: run.stage, error: run.error,
         done: run.chaptersDone, of: run.sectionIds.length,

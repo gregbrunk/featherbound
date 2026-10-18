@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 import Icon from '@/components/Icon';
 import Tuft from '@/components/Tuft';
-import { Modal, ModalHead } from '@/components/ui';
+import Select from '@/components/Select';
+import { Modal, ModalHead, Segmented } from '@/components/ui';
 import { deleteEdition, startAnalysis, startSamples } from '../edition-actions';
 
 /** Asks before reading the book with the account's AI key, showing what it will cost. */
@@ -118,5 +119,63 @@ export function MakeSamplesButton({ editionId, cost, disabled }: { editionId: st
       {disabled && <span className="tiny muted">Read the book through first (What’s inside tab).</span>}
       {message && <span className="small status-bad">{message}</span>}
     </div>
+  );
+}
+
+type DownloadVersion = { number: string; name: string; current: boolean };
+
+/** Download an edition (any version) or the original book, as EPUB or PDF. */
+export function DownloadButton({ target, id, title, versions, originalName, small = false }: {
+  target: 'edition' | 'book'; id: string; title: string; versions?: DownloadVersion[]; originalName?: string; small?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [format, setFormat] = useState<'epub' | 'pdf' | 'original'>(target === 'book' ? 'original' : 'epub');
+  const [version, setVersion] = useState(versions?.find((v) => v.current)?.number ?? versions?.[0]?.number ?? '');
+  const [started, setStarted] = useState(false);
+  const href = target === 'book'
+    ? format === 'original' ? `/api/books/${id}/original` : `/api/books/${id}/export?format=${format}`
+    : `/api/editions/${id}/export?format=${format}&v=${encodeURIComponent(version)}`;
+  const options = [
+    ...(target === 'book' ? [{ value: 'original' as const, label: 'Original file' }] : []),
+    { value: 'epub' as const, label: 'EPUB (e-readers)' },
+    { value: 'pdf' as const, label: 'PDF (print)' },
+  ];
+  return (
+    <>
+      <button className={`btn btn-${small ? 'secondary btn-sm' : 'ghost'}`} onClick={() => { setOpen(true); setStarted(false); }}>
+        <Icon name="download" size={small ? 16 : 18} /> {target === 'book' ? 'Download original' : 'Download'}
+      </button>
+      {open && (
+        <Modal onClose={() => setOpen(false)} label="Download">
+          <ModalHead title={target === 'book' ? 'Download original' : 'Download edition'} pose="read" onClose={() => setOpen(false)} />
+          <div className="stack">
+            <p className="muted">{title}</p>
+            <div className="field">
+              <span className="label">Format</span>
+              <Segmented label="Format" value={format} onChange={(v) => { setFormat(v); setStarted(false); }} options={options} />
+            </div>
+            {versions && versions.length > 0 && (
+              <div className="field">
+                <span className="label" id="dl-version">Version</span>
+                <Select labelledBy="dl-version" value={version} onChange={(v) => { setVersion(v); setStarted(false); }}
+                  options={versions.map((v) => ({ value: v.number, label: `v${v.number} “${v.name}”${v.current ? ' (current)' : ''}` }))} />
+              </div>
+            )}
+            <p className="small muted">
+              {format === 'original' ? `The file you uploaded${originalName ? ` (${originalName})` : ''}, unchanged.`
+                : target === 'book' ? 'Rebuilt from the chapters in your library, with the cover and pictures.'
+                : 'Includes the cover, pictures, kid-friendly titles and recaps if this edition has them, and a title-page note with the edition and version.'}
+              {format === 'pdf' ? ' A PDF takes up to a minute to prepare for a long book.' : ''}
+            </p>
+            <div className="row" style={{ justifyContent: 'flex-end' }}>
+              <button className="btn btn-ghost" onClick={() => setOpen(false)}>{started ? 'Close' : 'Cancel'}</button>
+              <a className="btn btn-primary" href={href} onClick={() => setStarted(true)} download>
+                <Icon name="download" size={18} /> {started ? 'Preparing your download…' : `Download ${format === 'original' ? 'file' : format.toUpperCase()}`}
+              </a>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </>
   );
 }

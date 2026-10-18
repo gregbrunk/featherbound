@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { getEdition } from '@/lib/analysis';
 import { getBook, getProgress, listBookmarks } from '@/lib/library';
-import { editionTarget, getVersion, listRunChapters } from '@/lib/runs';
+import { editionTarget, getVersion, listVersionChapters } from '@/lib/runs';
 import { requireAccount } from '@/lib/session';
 import { clearNotice } from '../../../(app)/books/edition-actions';
 import Reader from '../../book/[id]/Reader';
@@ -20,8 +20,8 @@ export default async function ReadEditionPage({ params, searchParams }: { params
   if (!book || !version) notFound();
   if (ed.notice === 'ready') await clearNotice(ed.id);
 
-  // Chapter titles come from the run that wrote the version.
-  const written = version.runId ? await listRunChapters(userId, version.runId) : [];
+  // A refined version mixes chapters from several runs, so look them up by the manifest.
+  const written = await listVersionChapters(userId, version.manifest);
   const byId = new Map(written.map((c) => [c.id, c]));
   const chapters = version.manifest.map((m) => {
     const c = byId.get(m.chapterId);
