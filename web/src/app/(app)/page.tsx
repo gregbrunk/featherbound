@@ -1,29 +1,43 @@
 import { redirect } from 'next/navigation';
-import Tuft from '@/components/Tuft';
 import { getAccountSettings } from '@/lib/account';
+import { bookTarget, getLibraryPrefs, listBooks, listProgress, listSeries } from '@/lib/library';
 import { requireAccount } from '@/lib/session';
-
+import LibraryView, { type LibraryBook } from './LibraryView';
 
 // Reads the session on every request; see the note in (app)/layout.tsx.
 export const instant = false;
 
-// The library arrives in Phase 2. Until then, new accounts go to the welcome screen first.
 export default async function LibraryPage() {
   const account = await requireAccount();
   const settings = await getAccountSettings(account.userId);
   if (!settings?.welcomedAt) redirect('/welcome');
-  return (
-    <main className="page">
-      <h1>My Library</h1>
-      <section className="shelf-section">
-        <div className="shelf empty-shelf">
-          <div className="row" style={{ gap: 14 }}>
-            <Tuft pose="read" size={70} />
-            <span className="muted small">Your shelves are empty… for now. Adding books comes next.</span>
-          </div>
-        </div>
-        <div className="shelf-board" />
-      </section>
-    </main>
-  );
+
+  const [books, series, progress, prefs] = await Promise.all([
+    listBooks(account.userId),
+    listSeries(account.userId),
+    listProgress(account.userId),
+    getLibraryPrefs(account.userId),
+  ]);
+  const progressByTarget = new Map(progress.map((p) => [p.target, p]));
+
+  const view: LibraryBook[] = books.map((b) => {
+    const p = progressByTarget.get(bookTarget(b.id));
+    return {
+      id: b.id,
+      title: b.title,
+      author: b.author,
+      status: b.status,
+      seriesId: b.seriesId,
+      seriesOrder: b.seriesOrder,
+      seriesLabel: b.seriesLabel,
+      genres: b.genres,
+      coverUrl: b.coverPath ? `/api/books/${b.id}/cover?v=${encodeURIComponent(b.coverPath.split('/').pop() ?? '')}` : null,
+      coverFallback: b.coverFallback,
+      addedAt: b.addedAt.toISOString(),
+      lastReadAt: p?.updatedAt.toISOString() ?? null,
+      percent: p?.percent ?? null,
+    };
+  });
+
+  return <LibraryView books={view} series={series.map((s) => ({ id: s.id, name: s.name, author: s.author }))} initialPrefs={prefs} />;
 }

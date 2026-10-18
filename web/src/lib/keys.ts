@@ -1,4 +1,3 @@
-import 'server-only';
 import Anthropic from '@anthropic-ai/sdk';
 import { createGateway } from 'ai';
 import { and, eq } from 'drizzle-orm';

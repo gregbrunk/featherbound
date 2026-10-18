@@ -40,9 +40,9 @@ export default async function WelcomePage() {
           <span className="welcome-num">2</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h3>Add your first book</h3>
-            <p className="small muted">Upload a DRM-free EPUB or PDF you own. I’ll read it, find its cover and series, and help you make a softer edition. (Coming next.)</p>
+            <p className="small muted">Upload a DRM-free EPUB or PDF you own. I’ll read it, find its cover and series, and get it on your shelf.</p>
           </div>
-          <Link href="/" className="btn btn-secondary btn-sm"><Icon name="book" size={16} /> Go to my library</Link>
+          <Link href="/add" className="btn btn-secondary btn-sm"><Icon name="plus" size={16} /> Add a book</Link>
         </li>
       </ol>
     </main>

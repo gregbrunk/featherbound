@@ -1,9 +1,11 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
+import { withWorkflow } from 'workflow/next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  // pdf.js loads its worker and fonts from its own package files at runtime.
+  serverExternalPackages: ['pdfjs-dist'],
 };
 
-export default nextConfig;
+export default withWorkflow(nextConfig);

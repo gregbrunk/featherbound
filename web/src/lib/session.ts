@@ -25,6 +25,15 @@ export const requireAccount = cache(async (): Promise<Account> => {
   };
 });
 
+/** For route handlers: the signed-in, still-allowed account, or null (respond 401/404). */
+export async function getAccount(): Promise<Account | null> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) return null;
+  const entry = await getAllowEntry(session.user.email);
+  if (!entry) return null;
+  return { userId: session.user.id, email: session.user.email, name: session.user.name, image: session.user.image ?? null, isAdmin: entry.isAdmin };
+}
+
 export async function requireAdmin() {
   const account = await requireAccount();
   if (!account.isAdmin) redirect('/settings');
