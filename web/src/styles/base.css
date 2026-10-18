@@ -596,3 +596,34 @@ input[type='range'].range {
   border-radius: var(--r-md);
   padding: 10px 14px; font-size: 13.5px; color: var(--gold-deep); font-weight: 700;
 }
+
+/* ---------- Select (themed dropdown; the app never uses a native <select>) ---------- */
+
+.fb-select { position: relative; min-width: 0; }
+.fb-select-button {
+  width: 100%; min-height: 44px; display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: var(--r-md); cursor: pointer; text-align: left;
+  background: #fff; border: 1.5px solid var(--line-strong); color: var(--ink); font: inherit; font-weight: 700;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.fb-select-button:hover { border-color: var(--lavender); }
+.fb-select-button:focus-visible, .fb-select.open .fb-select-button { outline: none; border-color: var(--plum); box-shadow: 0 0 0 4px rgba(75, 46, 131, 0.14); }
+.fb-select-value { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
+.fb-select-chevron { flex: none; color: var(--plum); transition: transform 0.2s; }
+.fb-select.open .fb-select-chevron { transform: rotate(180deg); }
+.fb-select-list {
+  position: absolute; z-index: 70; left: 0; top: calc(100% + 6px);
+  width: max(100%, min(340px, calc(100vw - 32px)));
+  max-height: 300px; overflow: auto; margin: 0; padding: 6px; list-style: none;
+  background: var(--paper); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg), inset 0 0 0 1px var(--line);
+  animation: rise 0.14s ease;
+}
+.fb-select-list.above { top: auto; bottom: calc(100% + 6px); }
+.fb-select-option { display: flex; align-items: flex-start; gap: 8px; padding: 9px 10px; border-radius: 12px; cursor: pointer; font-weight: 700; }
+.fb-select-option.active { background: var(--plum-soft); }
+.fb-select-option.selected { color: var(--plum); }
+.fb-select-option[aria-disabled='true'] { opacity: 0.45; cursor: not-allowed; }
+.fb-select-check { width: 18px; flex: none; padding-top: 2px; color: var(--plum); }
+.fb-select-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.fb-select-text > .row > span:first-child { white-space: nowrap; }

@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from 'react';
 import Icon from '@/components/Icon';
+import Select from '@/components/Select';
 import { IMAGE_MODELS, TEXT_MODELS, imageModel, textModel, type Strictness } from '@/lib/models';
 import { addEmailAction, removeEmailAction, removeKeyAction, saveKeyAction, saveModelsAction, setPinAction, type FormState } from './actions';
 
@@ -68,9 +69,13 @@ export function ModelsForm({ text, images, reachable }: { text: string; images: 
           <h3>Writing model</h3>
           <p className="small muted">Adapts the text, writes the Story Bible and checks consistency.</p>
         </div>
-        <select className="select" name="text" value={t} onChange={(e) => setT(e.target.value)} aria-label="Writing model">
-          {TEXT_MODELS.map((m) => <option key={m.id} value={m.id}>{m.name}{m.recommended ? ' (recommended)' : ''}{reachable[m.id] ? '' : ' · needs a key'}</option>)}
-        </select>
+        <Select name="text" value={t} onChange={setT} label="Writing model"
+          options={TEXT_MODELS.map((m) => ({
+            value: m.id,
+            label: m.name,
+            hint: `$${m.inPerM} / $${m.outPerM} per million tokens`,
+            badge: m.recommended ? <span className="chip chip-emerald">Recommended</span> : !reachable[m.id] ? <span className="chip chip-plain">Needs a key</span> : undefined,
+          }))} />
         <div className="row-wrap">
           <span className="chip chip-plain">${tm.inPerM} / ${tm.outPerM} per million tokens</span>
           {!reachable[tm.id] && <span className="chip chip-ruby">Add a key that covers this model</span>}
@@ -89,10 +94,14 @@ export function ModelsForm({ text, images, reachable }: { text: string; images: 
             <div key={label} className="model-slot">
               <div className="row" style={{ flexWrap: 'wrap' }}>
                 <strong style={{ width: 80 }}>{label}</strong>
-                <select className="select" style={{ flex: 1, minWidth: 220 }} name={`image${i}`} value={imgs[i]} aria-label={`${label} picture model`}
-                  onChange={(e) => setImgs((cur) => cur.map((x, j) => (j === i ? e.target.value : x)) as [string, string, string])}>
-                  {IMAGE_MODELS.map((x) => <option key={x.id} value={x.id}>{x.name}{reachable[x.id] ? '' : ' · needs a key'}</option>)}
-                </select>
+                <Select style={{ flex: 1, minWidth: 220 }} name={`image${i}`} value={imgs[i]} label={`${label} picture model`}
+                  onChange={(v) => setImgs((cur) => cur.map((x, j) => (j === i ? v : x)) as [string, string, string])}
+                  options={IMAGE_MODELS.map((x) => ({
+                    value: x.id,
+                    label: x.name,
+                    hint: `~$${x.perImage.toFixed(2)} a picture · ${STRICT_LABEL[x.strictness].toLowerCase()}`,
+                    badge: !reachable[x.id] ? <span className="chip chip-plain">Needs a key</span> : undefined,
+                  }))} />
               </div>
               <div className="row-wrap" style={{ marginLeft: 92 }}>
                 <span className="chip chip-plain">~${m.perImage.toFixed(2)} / picture</span>

@@ -19,7 +19,7 @@ This plan turns the PRD and the locked prototype into a production app, in phase
 | **Background runs** | **Vercel Workflow SDK** (`"use workflow"` / `"use step"`) | Durable runs: each chapter is a retryable step, runs survive restarts, and a **hook** pauses a run at the cost cap until the parent decides (PRD §5.5). |
 | **AI calls** | **AI SDK 7**, using each **account's own key** | One interface for the writing model and every picture model. A Vercel AI Gateway key (recommended) or direct provider keys (PRD §5.14). |
 | **Default models** | Text: **Claude Opus 5.5** · Pictures: **GPT Image 2 → Nano Banana 2 → Grok Imagine 2.0** | From the PRD and the bake-off. All can be changed in Settings. |
-| **Design system** | Port the prototype's CSS tokens and components (Tuft, BookCover, Icon, the reader) | The prototype *is* the design spec. Its look comes from hand-written CSS, so we keep that rather than switch to a component library. |
+| **Design system** | Port the prototype's CSS tokens and components (Tuft, BookCover, Icon, the reader) | The prototype *is* the design spec. Its look comes from hand-written CSS, so we keep that rather than switch to a component library. **Every dropdown uses the themed `Select` component; no native browser `<select>` anywhere** (Greg's rule). |
 | **Testing** | Vitest (unit), `@workflow/vitest` (runs), Playwright (end-to-end), plus an **adaptation quality suite** | The quality suite guards the thing that matters most: editions that still feel like the real book. |
 
 ### How the pieces fit
