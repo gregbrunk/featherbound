@@ -15,7 +15,7 @@ This plan turns the PRD and the locked prototype into a production app, in phase
 | **Hosting** | **Vercel** (Node.js 24 on Fluid Compute) | Preview deploy for every pull request, a 300-second default function timeout, and native support for the job runner below. |
 | **Database** | **Neon Postgres** (Vercel Marketplace) + **Drizzle ORM** | Relational data with typed queries and migrations. Each preview deploy gets its own database branch. |
 | **File storage** | **Vercel Blob, private store** | Originals, chapter text, illustrations, covers and exports. Nothing is public; files are served through our own authenticated routes or short-lived presigned URLs. |
-| **Sign-in** | **Clerk** (Vercel Marketplace), Google as the only sign-in method | Drop-in Google sign-in and session handling. The **allow list lives in our own database**, so the admin manages it in the app (PRD §5.12). |
+| **Sign-in** | **Better Auth** (self-hosted in the app, tables in our Neon database), Google as the only sign-in method | Works on any domain. A database hook refuses sign-up for emails not on the **allow list**, which lives in our own database so the admin manages it in the app (PRD §5.12). Chosen over Clerk (needs a custom domain for production) and Neon Auth (no server hooks). |
 | **Background runs** | **Vercel Workflow SDK** (`"use workflow"` / `"use step"`) | Durable runs: each chapter is a retryable step, runs survive restarts, and a **hook** pauses a run at the cost cap until the parent decides (PRD §5.5). |
 | **AI calls** | **AI SDK 7**, using each **account's own key** | One interface for the writing model and every picture model. A Vercel AI Gateway key (recommended) or direct provider keys (PRD §5.14). |
 | **Default models** | Text: **Claude Opus 5.5** · Pictures: **GPT Image 2 → Nano Banana 2 → Grok Imagine 2.0** | From the PRD and the bake-off. All can be changed in Settings. |
@@ -26,7 +26,7 @@ This plan turns the PRD and the locked prototype into a production app, in phase
 
 ```
 Browser (phone / tablet / desktop)
-   │  Clerk session (Google)
+   │  Better Auth session (Google)
    ▼
 Next.js on Vercel ── proxy.ts: signed in? on the allow list? ──► "This library is private"
    │
@@ -55,7 +55,8 @@ Next.js on Vercel ── proxy.ts: signed in? on the allow list? ──► "This
 | Table | Holds |
 |---|---|
 | `allowed_emails` | Allow list; `is_admin` flag |
-| `accounts` | Clerk user ID ↔ account, display name, hand-off PIN hash, preferences |
+| `user`, `session`, `account`, `verification` | Better Auth's tables. A `user` is a Featherbound account and owns one library |
+| `account_settings` | Hand-off PIN hash, first-visit flag, preferences |
 | `api_keys` | Encrypted key, provider, last four characters, status, checked-at time |
 | `model_settings` | Writing model and the three picture models, in order |
 | `series`, `books`, `book_chapters` | Library structure; chapter titles, word counts and the original text hash |
@@ -94,7 +95,7 @@ Each phase ends with a working, deployed app and a clear exit check. Sizes are r
 ### Phase 1 — Accounts, access & keys · M
 **Goal:** Greg can sign in on any device and set up his own AI keys; anyone else gets their own empty library.
 
-- **Clerk** with Google as the only sign-in method. `proxy.ts` sends anyone not signed in to sign-in, and anyone not on the allow list to the "This library is private" page.
+- **Better Auth** with Google as the only sign-in method. `proxy.ts` sends anyone not signed in to sign-in. A sign-up hook refuses emails not on the allow list, and `requireAccount()` re-checks the list on every request, sending anyone removed to the "This library is private" page.
 - **Allow list and admin:** seed `parent@example.com` as admin, and build **Settings → Sign-in access** (add and remove emails).
 - **Account bootstrap** on first sign-in, plus the **first-visit welcome**: add your key, then add your first book.
 - **Settings → AI models & keys:**
@@ -259,7 +260,8 @@ Phase 0 ─► Phase 1 ─► Phase 2 ─► Phase 3 ─► Phase 4 ─► Phase
 ## 5. Running costs (to confirm at setup)
 - **Vercel:** Hobby may be enough for personal use; move to Pro if Workflow, Blob or function limits get in the way.
 - **Neon and Blob:** free tiers should cover a family library to start.
-- **Clerk:** free tier at this scale.
+- **Better Auth:** open source, no fee.
+- **Domain:** featherbound.ink, bought by Greg.
 - **AI:** paid by each account's own keys, as tracked on the usage dashboard. From the bake-off and prototype estimates:
   - Roughly $2–$15 per text edition, depending on book length.
   - About $0.05–$0.08 per picture.
@@ -267,5 +269,5 @@ Phase 0 ─► Phase 1 ─► Phase 2 ─► Phase 3 ─► Phase 4 ─► Phase
 ## 6. Decisions (answered 2026-10-17)
 1. **Repo layout:** the real app goes in `web/`; `prototype/` stays as the design reference.
 2. **Hosting:** Greg's existing Vercel **Hobby** plan. We move to Pro only if limits get in the way.
-3. **Domain:** the default `*.vercel.app` address for now.
+3. **Domain:** **featherbound.ink** (Greg changed this after buying the domain). `www` redirects to it.
 4. **Mascot name:** **Tuft** is confirmed.
