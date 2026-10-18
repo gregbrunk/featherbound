@@ -1,0 +1,1 @@
+ALTER TABLE "section_analyses" ADD COLUMN "places" jsonb DEFAULT '[]'::jsonb NOT NULL;

@@ -29,6 +29,20 @@
       "when": 1792295109686,
       "tag": "0003_library",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792297672653,
+      "tag": "0004_analysis_editions",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792297828563,
+      "tag": "0005_analysis_places",
+      "breakpoints": true
     }
   ]
 }

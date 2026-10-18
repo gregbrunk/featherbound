@@ -175,3 +175,81 @@ export const bookmarks = pgTable(
   },
   (t) => [index('bookmarks_user_target_idx').on(t.userId, t.target)],
 );
+
+// ── Analysis & editions ──────────────────────────────────────────────────────────────
+
+/** One read-through of a book that produces the Content Report and the Story Bible. */
+export const bookAnalyses = pgTable(
+  'book_analyses',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    bookId: uuid('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
+    status: text('status').$type<'running' | 'ready' | 'failed'>().notNull().default('running'),
+    chaptersDone: integer('chapters_done').notNull().default(0),
+    chaptersTotal: integer('chapters_total').notNull().default(0),
+    model: text('model').notNull(),
+    costUsd: numeric('cost_usd', { precision: 12, scale: 6 }).notNull().default('0'),
+    error: text('error'),
+    workflowRunId: text('workflow_run_id'),
+    startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+  },
+  (t) => [index('book_analyses_book_idx').on(t.bookId, t.startedAt)],
+);
+
+export type Intensities = Partial<Record<'language' | 'violence' | 'scariness' | 'death' | 'romance' | 'substances' | 'mature' | 'meanness' | 'crude', 0 | 1 | 2 | 3>>;
+
+/** What the analysis found in one chapter. */
+export const sectionAnalyses = pgTable(
+  'section_analyses',
+  {
+    analysisId: uuid('analysis_id').notNull().references(() => bookAnalyses.id, { onDelete: 'cascade' }),
+    sectionId: uuid('section_id').notNull().references(() => bookSections.id, { onDelete: 'cascade' }),
+    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    position: integer('position').notNull(),
+    intensities: jsonb('intensities').$type<Intensities>().notNull(),
+    notes: jsonb('notes').$type<Partial<Record<string, string>>>().notNull(),
+    summary: text('summary').notNull(),
+    characters: jsonb('characters').$type<{ name: string; look: string }[]>().notNull().default([]),
+    places: jsonb('places').$type<{ name: string; look: string }[]>().notNull().default([]),
+  },
+  (t) => [primaryKey({ columns: [t.analysisId, t.sectionId] })],
+);
+
+export type StoryBible = {
+  characters: { name: string; role: string; look: string; note: string }[];
+  places: { name: string; look: string }[];
+  threads: string[];
+  themes: string[];
+  keyScenes: { chapter: number; scene: string }[];
+};
+
+export const storyBibles = pgTable('story_bibles', {
+  bookId: uuid('book_id').primaryKey().references(() => books.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  analysisId: uuid('analysis_id').notNull().references(() => bookAnalyses.id, { onDelete: 'cascade' }),
+  data: jsonb('data').$type<StoryBible>().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type EditionStatus = 'draft' | 'making-samples' | 'samples-ready' | 'running' | 'paused-cap' | 'ready' | 'failed';
+
+export const editions = pgTable(
+  'editions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    bookId: uuid('book_id').notNull().references(() => books.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    settings: jsonb('settings').notNull(),
+    status: text('status').$type<EditionStatus>().notNull().default('draft'),
+    costCap: numeric('cost_cap', { precision: 10, scale: 2 }).notNull(),
+    estimate: jsonb('estimate').$type<{ total: number; samples: number; minutes: number }>(),
+    sampleGuidance: jsonb('sample_guidance').$type<string[]>().notNull().default([]),
+    currentVersion: text('current_version'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('editions_book_idx').on(t.userId, t.bookId)],
+);

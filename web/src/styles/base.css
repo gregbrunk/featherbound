@@ -559,13 +559,13 @@ input[type='range'].range {
 /* ---------- Tabs ---------- */
 
 .tabs { display: flex; gap: 4px; border-bottom: 1.5px solid var(--line); overflow-x: auto; }
-.tabs button {
-  border: none; background: none; cursor: pointer;
+.tabs button, .tabs a {
+  border: none; background: none; cursor: pointer; text-decoration: none;
   padding: 12px 14px; font-weight: 800; color: var(--ink-soft);
   border-bottom: 3px solid transparent; margin-bottom: -1.5px;
   white-space: nowrap;
 }
-.tabs button.on { color: var(--plum); border-bottom-color: var(--plum); }
+.tabs button.on, .tabs a.on { color: var(--plum); border-bottom-color: var(--plum); }
 
 /* ---------- Grids ---------- */
 
