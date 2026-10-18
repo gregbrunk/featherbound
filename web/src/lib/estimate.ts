@@ -136,3 +136,17 @@ export function estimateSamples(book: BookSize, sampleWords: number, models: Mod
   const t = adaptTokens(Math.max(1, sampleWords), sampleChapters, book.chapters);
   return (t.tokensIn * tm.inPerM + t.tokensOut * tm.outPerM) / 1e6;
 }
+
+/**
+ * Refining chapters: like adapting them, but each call carries the original and the current
+ * adaptation side by side. A passage sends a short window around one paragraph.
+ */
+export function estimateRefine(book: BookSize, words: number, chapters: number, models: ModelChoice) {
+  const tm = textModel(models.text);
+  const t = adaptTokens(Math.max(1, words), Math.max(1, chapters), book.chapters);
+  const cost = ((t.tokensIn + words * TOKENS_PER_WORD) * tm.inPerM + t.tokensOut * tm.outPerM) / 1e6 + 0.02;
+  return { cost, minutes: Math.max(1, Math.round((t.calls * SECONDS_PER_CALL) / 60 / tm.speed + 1)) };
+}
+
+/** Words a passage refinement shows the model: about seven paragraphs. */
+export const PASSAGE_WORDS = 450;

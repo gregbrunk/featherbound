@@ -263,6 +263,17 @@ export const editions = pgTable(
 // ── Adaptation ─────────────────────────────────────────────────────────────────────
 
 export type SampleComment = { sectionId: string; quote: string; text: string };
+export type VersionLevel = 'major' | 'minor' | 'patch';
+/** What a refinement run was asked to do. */
+export type RefineSpec = {
+  scope: 'whole' | 'chapters' | 'passage';
+  guidance: string;
+  level: VersionLevel;
+  /** The version the run started from; the new version is built on its manifest. */
+  baseVersion: string;
+  /** For a passage: which paragraph (block index) of which chapter. */
+  passage?: { sectionId: string; index: number };
+};
 export type RunStatus = 'running' | 'paused-cap' | 'ready' | 'failed' | 'stopped';
 
 /** One background run on an edition: a round of samples, or the full book. */
@@ -272,7 +283,8 @@ export const editionRuns = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
     editionId: uuid('edition_id').notNull().references(() => editions.id, { onDelete: 'cascade' }),
-    kind: text('kind').$type<'samples' | 'full'>().notNull(),
+    kind: text('kind').$type<'samples' | 'full' | 'refine'>().notNull(),
+    refine: jsonb('refine').$type<RefineSpec>(),
     round: integer('round').notNull().default(1),
     status: text('status').$type<RunStatus>().notNull().default('running'),
     sectionIds: jsonb('section_ids').$type<string[]>().notNull(),
@@ -294,7 +306,7 @@ export const editionRuns = pgTable(
   (t) => [index('edition_runs_edition_idx').on(t.editionId, t.startedAt)],
 );
 
-export type ChangeNote = { category: string; level: 'Soften' | 'Remove' | 'Reading level'; note: string };
+export type ChangeNote = { category: string; level: 'Soften' | 'Remove' | 'Reading level' | 'Refine'; note: string };
 
 /** One adapted chapter. Chapters are never edited in place; versions point at them. */
 export const editionChapters = pgTable(

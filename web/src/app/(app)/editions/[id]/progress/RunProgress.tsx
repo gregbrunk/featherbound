@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 import Icon from '@/components/Icon';
 import Tuft from '@/components/Tuft';
-import type { RunStatus } from '@/db/schema';
+import type { RefineSpec, RunStatus } from '@/db/schema';
 import { fmtMinutes, money } from '@/lib/estimate';
 import { answerCap, resumeRun } from '../../../books/edition-actions';
 
@@ -16,9 +16,10 @@ const STAGE: Record<string, string> = {
   finishing: 'Finishing up',
 };
 
-export default function RunProgress({ book, edition, run, version, pace }: {
+export default function RunProgress({ book, edition, run, version, pace, refine }: {
   book: { id: string; title: string };
   edition: { id: string; name: string };
+  refine: RefineSpec | null;
   run: { id: string; status: RunStatus; stage: string | null; error: string | null; done: number; of: number; spent: number; cap: number; estimate: number; totalWords: number; minutes: number | null };
   version: { number: string; name: string; description: string; cost: number } | null;
   pace: { needMore: number; vsEstimate: number } | null;
@@ -51,7 +52,7 @@ export default function RunProgress({ book, edition, run, version, pace }: {
             {Array.from({ length: 14 }, (_, i) => <i key={i} style={{ left: `${(i * 37) % 100}%`, top: `${(i * 53) % 100}%`, animationDelay: `${(i % 5) * 0.4}s` }} />)}
           </div>
           <Tuft pose="cheer" size={150} />
-          <h1>Ta-da! It’s ready.</h1>
+          <h1>{refine ? 'Your new version is ready.' : 'Ta-da! It’s ready.'}</h1>
           <p className="muted">{book.title} · {edition.name}</p>
           {version && (
             <div className="version-hero">
@@ -87,18 +88,21 @@ export default function RunProgress({ book, edition, run, version, pace }: {
               {paused ? <><Icon name="pause" size={12} /> Paused at your cost cap</>
                 : failed ? <>Stopped by a problem</>
                 : stopped ? <><Icon name="pause" size={12} /> Stopped for now</>
-                : <><span className="dot" /> {STAGE[run.stage ?? 'writing'] ?? 'Writing'}</>}
+                : <><span className="dot" /> {refine ? 'Refining' : STAGE[run.stage ?? 'writing'] ?? 'Writing'}</>}
             </span>
             <h1>
               {paused ? 'I stopped to check with you'
                 : failed ? 'Something went wrong'
                 : stopped ? `${run.done} of ${run.of} chapters written`
+                : refine?.scope === 'passage' ? 'Rewriting one passage'
                 : run.done < run.of ? `Chapter ${run.done + 1} of ${run.of}` : 'Nearly there'}
             </h1>
+            {refine && <blockquote className="guidance-quote"><span className="tiny faint">YOU ASKED</span>{refine.guidance}</blockquote>}
             <p className="muted">
               {paused ? `I’ve written ${run.done} of ${run.of} chapters. The next ones would likely go past your ${money(run.cap)} cap.`
                 : failed ? (run.error ?? 'The run stopped unexpectedly.') + ' Finished chapters are kept; trying again picks up where I left off.'
                 : stopped ? 'Finished chapters are kept. You can carry on whenever you like.'
+                : refine ? `Your current version stays readable while I work. When I’m done, the new version becomes current; v${refine.baseVersion} stays in the history.`
                 : 'You can close this page. I’ll keep going and put a note on your library when I’m done.'}
             </p>
           </div>
