@@ -7,6 +7,15 @@ This plan turns the PRD and the locked prototype into a production app, in phase
 
 ---
 
+## Progress
+
+| Phase | Status |
+|---|---|
+| 0 · Foundations | Done (2026-10-17). Live at featherbound.ink; adaptation spike passed. |
+| 1 · Accounts, access & keys | Done (2026-10-17). Better Auth with Google, allow list, encrypted keys, model settings, themed dropdowns. |
+| 2 · Library & import | Done (2026-10-17). EPUB/PDF import job, review screen, library, book and series pages, reader with synced progress. Re-import added after nested-part chapters were fixed. Exporting a rebuilt EPUB moves to Phase 5, alongside edition export; originals download as the uploaded file. |
+| 3 · Analysis, wizard & estimates | Next |
+
 ## 1. Architecture at a glance
 
 | Layer | Choice | Why |
