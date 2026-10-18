@@ -19,5 +19,5 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   // Everything except sign-in, the private page, auth endpoints and static files.
-  matcher: ['/((?!sign-in|private|api/auth|api/cron|\\.well-known/workflow/|_next/static|_next/image|icon\\.svg|favicon\\.ico).*)'],
+  matcher: ['/((?!sign-in|private|api/auth|api/cron|\\.well-known/workflow/|_next/static|_next/image|icon\\.png|apple-icon\\.png|icons/|manifest\\.webmanifest|favicon\\.ico).*)'],
 };
