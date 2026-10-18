@@ -232,7 +232,7 @@ Parents can save their settings as **presets** (e.g. "Age 6 read-aloud, gentle")
   - Celebrating finished chapters and books.
   - Reacting in error states.
   - Guarding the Hand-off lock.
-- **Concept:** the softest round, white puffball bird (inspired by the long-tailed tit, the "snow fairy" of Hokkaido), wearing a wizard hat that's much too big for it. Details and a name get worked out in the prototype.
+- **Concept:** the softest round, white puffball bird (inspired by the long-tailed tit, the "snow fairy" of Hokkaido), wearing a wizard hat that's much too big for it. Its name is **Tuft**.
 - Visual direction: whimsical fantasy, like a cozy enchanted library. Warm parchment, deep jewel tones, hand-drawn touches, floating feathers, and little bits of magic (sparkles, page flutter, candlelight). It should be playful but never cluttered, and the reading screen stays calm and easy to read.
 
 ### 5.14 AI models & keys (P0)
@@ -304,9 +304,7 @@ These are modeled on the categories Common Sense Media uses. Each one can be set
 - Actual costs stay within roughly ±25% of estimates, and no run goes past its cap.
 
 ## 9. Open questions
-| # | Question | Default if not decided |
-|---|---|---|
-| Q1 | Mascot name: "Tuft" is the working name (others: Pip, Mochi, Wisp, Dumpling, Snowdrop). | Tuft |
+None. The mascot's name is **Tuft** (confirmed 2026-10-17).
 
 ## 9a. Prototype
 A clickable prototype lives in `prototype/` (see the README to run it). It covers every P0 flow plus several P1 ones: library shelves with View / Sort / Filter, series box sets, book page with editions and settings cards, import with AI series suggestion and DRM error, the 7-step Kid-ify wizard with estimate and cost cap (including the image density slider with live cost and time), AI models & keys settings, sample review with highlight-to-comment, background runs with the cap pause, the reader (page turns, two-page spread, themes, fonts, illustrations, recaps, compare mode), Hand-off mode with PIN unlock, refinement, version history with compare and rollback, the usage dashboard, sign-in access, a new account's first visit (`/#/welcome`), and the sign-in and private pages. "Meet Tuft" (`/#/design`) shows the mascot poses, palette and type.
@@ -344,3 +342,4 @@ The prototype is **locked** at git tag `prototype-v1` and is the design referenc
 | 2026-10-17 | Image density runs from every page to once per chapter, with live full-book cost and time as the slider moves. Picture cost and time are included in every estimate. | Parents can balance how many pictures they get against cost and wait. |
 | 2026-10-17 | **One account, one library.** No shared or family libraries and no key sharing. The admin only manages the sign-in allow list; new accounts start with an empty library and add their own keys. Supersedes the earlier shared family library. | Keeps everyone's books, costs and keys separate and simple. |
 | 2026-10-17 | Prototype locked as `prototype-v1`; PRD v1.0 approved for the build plan. | Scope, requirements and design are aligned. |
+| 2026-10-17 | Mascot is named **Tuft**. Build on Greg's Vercel Hobby plan at the default `*.vercel.app` address, with the app in `web/`. | Decisions needed before Phase 0. |
