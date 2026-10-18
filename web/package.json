@@ -21,13 +21,19 @@
     "@ai-sdk/xai": "^5.0.24",
     "@anthropic-ai/sdk": "^0.135.0",
     "@neondatabase/serverless": "^1.2.0",
+    "@vercel/blob": "^2.8.2",
     "ai": "^7.0.143",
     "better-auth": "^1.7.10",
     "drizzle-orm": "^0.45.4",
+    "fast-xml-parser": "^5.11.2",
+    "jszip": "^3.10.2",
     "next": "16.4.2",
+    "node-html-parser": "^9.0.4",
+    "pdfjs-dist": "^6.4.299",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "server-only": "^0.0.1",
+    "workflow": "^5.2.2",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -38,6 +44,7 @@
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
+    "pdf-lib": "^1.17.1",
     "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.0.5"

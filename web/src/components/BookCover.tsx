@@ -7,6 +7,11 @@ export type CoverSpec = { from: string; to: string; emblem: string; ink?: string
 // Real cover art when we have it; a stylized stand-in cover when we don't (or it fails to load).
 
 const EMBLEMS: Record<string, React.ReactNode> = {
+  feather: (
+    <>
+      <path d="M38 6C22 6 12 18 12 34M38 6c0 14-10 22-26 28M8 40l4-6M20 22h10" />
+    </>
+  ),
   ring: (
     <>
       <circle cx="24" cy="25" r="13" strokeWidth="4.5" />

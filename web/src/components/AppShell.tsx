@@ -7,7 +7,8 @@ import Tuft from './Tuft';
 import Icon from './Icon';
 
 const NAV = [
-  { href: '/', label: 'Library', icon: 'book', match: (p: string) => p === '/' },
+  { href: '/', label: 'Library', icon: 'book', match: (p: string) => p === '/' || p.startsWith('/books') || p.startsWith('/series') },
+  { href: '/add', label: 'Add a book', icon: 'plus', match: (p: string) => p.startsWith('/add') },
   { href: '/settings', label: 'Settings', icon: 'gear', match: (p: string) => p.startsWith('/settings') },
 ];
 

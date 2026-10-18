@@ -535,3 +535,25 @@ blockquote { margin: 0; font-family: var(--font-read); font-style: italic; color
 .status-ok { color: var(--emerald); font-weight: 700; }
 .status-bad { color: var(--ruby); font-weight: 700; }
 .gate-tagline { max-width: 30ch; text-wrap: balance; }
+
+/* ---------- Book import & book page (web app) ---------- */
+
+.clamp-6 { display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
+.cover-picks { display: flex; gap: 12px; overflow-x: auto; padding: 4px; }
+.cover-pick { flex: none; width: 104px; display: flex; flex-direction: column; gap: 6px; align-items: stretch; padding: 6px; border-radius: var(--r-md); border: none; background: #fff; box-shadow: inset 0 0 0 1.5px var(--line-strong); cursor: pointer; text-align: center; }
+.cover-pick img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 4px 8px 8px 4px; }
+.cover-pick.on { box-shadow: inset 0 0 0 3px var(--plum); background: #faf7ff; }
+.chapter-list li.merged { opacity: 0.7; padding-left: 28px; }
+.toc-list { list-style: none; padding: 0; margin: 0; columns: 2 260px; column-gap: 24px; }
+.toc-list li { break-inside: avoid; }
+.toc-list a { display: flex; gap: 10px; padding: 6px 8px; border-radius: 8px; text-decoration: none; color: var(--ink); font-weight: 700; }
+.toc-list a:hover { background: var(--plum-soft); }
+
+/* ---------- Reader extras (web app) ---------- */
+
+.scene-break { text-align: center; color: var(--gold); letter-spacing: 0.6em; margin: 0.6em 0 1em; break-inside: avoid; }
+.book-h { font-family: var(--font-display); color: inherit; margin: 0.8em 0 0.5em; break-after: avoid; }
+.book-h1 { font-size: 1.4em; }
+.book-h2 { font-size: 1.2em; }
+.book-h3 { font-size: 1.05em; }
+.book-quote { margin: 0 0 0.85em 1em; padding-left: 0.8em; border-left: 3px solid color-mix(in srgb, var(--r-ink) 20%, transparent); font-style: normal; color: inherit; font-size: 0.95em; }

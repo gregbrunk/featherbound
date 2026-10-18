@@ -1,4 +1,3 @@
-import 'server-only';
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 
 // AI keys are encrypted with AES-256-GCM under KEY_ENCRYPTION_KEY (32 random bytes, base64),
