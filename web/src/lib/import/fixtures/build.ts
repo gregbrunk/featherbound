@@ -237,3 +237,33 @@ export async function buildScannedPdf(): Promise<Uint8Array> {
   }
   return pdf.save();
 }
+
+/** Shaped like Ready Player One: a few top-level "Levels", each holding numbered chapters. */
+export async function buildNestedLevelsEpub(): Promise<Uint8Array> {
+  const files = ['l1', 'c1', 'c2', 'l2', 'c3', 'c4', 'l3', 'c5', 'c6', 'end'];
+  const opf = `<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="uid">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="uid">x</dc:identifier><dc:title>Quest Game</dc:title><dc:creator>A. Writer</dc:creator><dc:language>en</dc:language></metadata>
+  <manifest>
+    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+    ${files.map((f) => `<item id="${f}" href="${f}.xhtml" media-type="application/xhtml+xml"/>`).join('\n    ')}
+  </manifest>
+  <spine>${files.map((f) => `<itemref idref="${f}"/>`).join('')}</spine>
+</package>`;
+  const li = (f: string, t: string, kids = '') => `<li><a href="${f}.xhtml">${t}</a>${kids}</li>`;
+  const nav = `<?xml version="1.0" encoding="utf-8"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><body>
+<nav epub:type="toc"><ol>
+  ${li('l1', 'Level One', `<ol>${li('c1', '0001')}${li('c2', '0002')}</ol>`)}
+  ${li('l2', 'Level Two', `<ol>${li('c3', '0003')}${li('c4', '0004')}</ol>`)}
+  ${li('l3', 'Level Three', `<ol>${li('c5', '0005')}${li('c6', '0006')}</ol>`)}
+  ${li('end', 'Endgame')}
+</ol></nav></body></html>`;
+  const body: Record<string, string> = {};
+  for (const f of files) {
+    const n = f.replace(/\D/g, '');
+    body[`OEBPS/${f}.xhtml`] = f.startsWith('c')
+      ? xhtml(f, `<h2>000${n}</h2><p>Chapter ${n} begins here and goes on for a while.</p>`)
+      : xhtml(f, `<h1>${f}</h1><p>${f === 'end' ? 'The game ended.' : 'An epigraph for this level.'}</p>`);
+  }
+  return zipEpub({ 'OEBPS/content.opf': opf, 'OEBPS/nav.xhtml': nav, ...body });
+}

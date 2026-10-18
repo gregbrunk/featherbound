@@ -294,12 +294,28 @@ function parseNcx(ncxXml: string, ncxPath: string): TocNode[] {
 
 type TocEntry = { title: string; path: string; anchor?: string };
 
-/** Top level of the TOC; if it has very few entries, descend a level (up to 3 times). */
+// Titles that name a division containing chapters (Part One, Book II, Level Three, Act 1…).
+const PART_LIKE = /^(part|book|level|volume|vol\.?|act|section|season)\b/i;
+// Titles that look like individual chapters (Chapter 3, 12, 0004, XIV, Prologue…).
+const CHAPTER_LIKE = /^(chapter|ch\.|prologue|epilogue|interlude)\b|^(\d{1,4}|[ivxlcdm]+)(\b|[.:)\s])/i;
+
+/**
+ * The TOC entries to split chapters at. Starts at the top level and opens up an entry's
+ * children when the top level is tiny (fewer than 3 entries), when the entry names a division
+ * ("Part One", "Level Two"), or when its children look like chapters. A division keeps its own
+ * entry too, so its title page (if any) stays in place. Goes at most 3 levels deep.
+ */
 function flattenToc(nodes: TocNode[], spinePaths: Set<string>): TocEntry[] {
   const usable = (list: TocNode[]) => list.filter((n) => spinePaths.has(n.path));
+  const opens = (n: TocNode, levelSize: number) => {
+    const kids = usable(n.children);
+    if (!kids.length) return false;
+    return levelSize < 3 || PART_LIKE.test(n.title.trim()) || kids.filter((k) => CHAPTER_LIKE.test(k.title.trim())).length >= 2;
+  };
   let level = usable(nodes);
-  for (let depth = 0; depth < 3 && level.length < 3; depth++) {
-    const next = level.flatMap((n) => [n, ...usable(n.children)]);
+  for (let depth = 0; depth < 3; depth++) {
+    const size = level.length;
+    const next = level.flatMap((n) => (opens(n, size) ? [{ ...n, children: [] }, ...usable(n.children)] : [n]));
     if (next.length === level.length) break;
     level = next;
   }

@@ -5,7 +5,7 @@ import Icon from '@/components/Icon';
 import Select from '@/components/Select';
 import { Modal, ModalHead } from '@/components/ui';
 import { GENRES } from '@/lib/genres';
-import { deleteBook, saveDetails, type DetailsInput } from '../actions';
+import { deleteBook, reimportBook, saveDetails, type DetailsInput } from '../actions';
 
 export function DeleteBookButton({ bookId, title, label = 'Delete book' }: { bookId: string; title: string; label?: string }) {
   const [open, setOpen] = useState(false);
@@ -94,6 +94,29 @@ export function EditDetailsButton({ bookId, initial, series }: { bookId: string;
               <button className="btn btn-primary" disabled={pending}>{pending ? 'Saving…' : 'Save details'}</button>
             </div>
           </form>
+        </Modal>
+      )}
+    </>
+  );
+}
+
+export function ReimportButton({ bookId }: { bookId: string }) {
+  const [open, setOpen] = useState(false);
+  const [pending, start] = useTransition();
+  return (
+    <>
+      <button type="button" className="btn btn-ghost" onClick={() => setOpen(true)}><Icon name="refresh" size={16} /> Re-import from the original file</button>
+      {open && (
+        <Modal onClose={() => setOpen(false)} label="Re-import book">
+          <ModalHead title="Re-import this book?" pose="think" onClose={() => setOpen(false)} />
+          <div className="stack">
+            <p>I’ll read the original file again and find the chapters fresh. You’ll check the details before it goes back on the shelf.</p>
+            <p className="small muted">Your bookmarks and reading position may move back to the start of a chapter.</p>
+            <div className="row" style={{ justifyContent: 'flex-end' }}>
+              <button className="btn btn-ghost" onClick={() => setOpen(false)}>Cancel</button>
+              <button className="btn btn-primary" disabled={pending} onClick={() => start(() => reimportBook(bookId))}>{pending ? 'Starting…' : 'Re-import'}</button>
+            </div>
+          </div>
         </Modal>
       )}
     </>

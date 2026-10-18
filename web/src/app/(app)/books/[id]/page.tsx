@@ -6,7 +6,7 @@ import Tuft from '@/components/Tuft';
 import type { CoverSpec } from '@/db/schema';
 import { bookTarget, getBook, getProgress, getSeries, listSections, listSeries } from '@/lib/library';
 import { requireAccount } from '@/lib/session';
-import { DeleteBookButton, EditDetailsButton } from './BookActions';
+import { DeleteBookButton, EditDetailsButton, ReimportButton } from './BookActions';
 
 // Reads the session on every request; see the note in (app)/layout.tsx.
 export const instant = false;
@@ -91,6 +91,7 @@ export default async function BookPage({ params }: { params: Promise<{ id: strin
           ))}
         </ol>
         <div className="row-wrap" style={{ marginTop: 8 }}>
+          <ReimportButton bookId={book.id} />
           <span className="spacer" />
           <DeleteBookButton bookId={book.id} title={book.title} />
         </div>

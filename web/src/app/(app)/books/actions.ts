@@ -34,6 +34,12 @@ export async function retryImport(bookId: string) {
   revalidatePath(`/books/${bookId}/review`);
 }
 
+/** Read the original file again (e.g. after the importer improves) and review the result. */
+export async function reimportBook(bookId: string) {
+  await retryImport(bookId);
+  redirect(`/books/${bookId}/review`);
+}
+
 export type ReviewInput = {
   title: string;
   author: string;

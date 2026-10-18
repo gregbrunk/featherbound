@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { buildEncryptedEpub, buildEpub2, buildEpub3, zipEpub } from './fixtures/build';
+import { buildEncryptedEpub, buildEpub2, buildEpub3, zipEpub, buildNestedLevelsEpub } from './fixtures/build';
 import { parseEpub } from './parse-epub';
 import { blockText } from './sections';
 import type { ParsedBook, ParseResult } from './types';
@@ -71,6 +71,18 @@ describe('parseEpub: EPUB3 with nav', () => {
       metadataExtra: `<meta property="belongs-to-collection" id="c1">Glass Saga</meta><meta refines="#c1" property="collection-type">series</meta><meta refines="#c1" property="group-position">3</meta>`,
     });
     expect(book(await parseEpub(bytes, 'x.epub')).metadata.series).toEqual({ name: 'Glass Saga', position: 3 });
+  });
+});
+
+describe('parseEpub: chapters nested inside parts', () => {
+  it('opens part-like entries so each numbered chapter is its own section', async () => {
+    const { parseBook } = await import('./parse');
+    const r = await parseBook(await buildNestedLevelsEpub(), 'quest.epub');
+    if (!r.ok) throw new Error(r.detail);
+    const titles = r.book.sections.filter((s) => s.include).map((s) => s.title);
+    for (const t of ['0001', '0002', '0003', '0004', '0005', '0006']) expect(titles).toContain(t);
+    expect(titles).toContain('Endgame');
+    expect(titles.indexOf('Level Two')).toBeLessThan(titles.indexOf('0003'));
   });
 });
 
