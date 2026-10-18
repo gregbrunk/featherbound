@@ -8,6 +8,20 @@
       "when": 1792291637174,
       "tag": "0000_young_pete_wisdom",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792292364344,
+      "tag": "0001_drop_placeholder_accounts",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792292364884,
+      "tag": "0002_auth_keys_models_usage",
+      "breakpoints": true
     }
   ]
 }

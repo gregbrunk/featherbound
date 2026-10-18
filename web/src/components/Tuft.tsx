@@ -12,7 +12,8 @@ type Props = {
 
 const FUZZ = Array.from({ length: 18 }, (_, i) => {
   const a = (i / 18) * Math.PI * 2;
-  return { cx: 100 + Math.cos(a) * 56, cy: 146 + Math.sin(a) * 49, r: 9 + (i % 3) };
+  // Rounded so server and browser render identical numbers (avoids hydration mismatches).
+  return { cx: Math.round((100 + Math.cos(a) * 56) * 100) / 100, cy: Math.round((146 + Math.sin(a) * 49) * 100) / 100, r: 9 + (i % 3) };
 });
 
 function Star({ x, y, s = 1, fill = '#F6E3AE', className }: { x: number; y: number; s?: number; fill?: string; className?: string }) {
