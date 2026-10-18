@@ -557,3 +557,16 @@ blockquote { margin: 0; font-family: var(--font-read); font-style: italic; color
 .book-h2 { font-size: 1.2em; }
 .book-h3 { font-size: 1.05em; }
 .book-quote { margin: 0 0 0.85em 1em; padding-left: 0.8em; border-left: 3px solid color-mix(in srgb, var(--r-ink) 20%, transparent); font-style: normal; color: inherit; font-size: 0.95em; }
+
+/* ---------- Analysis ---------- */
+
+.estimate-strip { display: flex; flex-wrap: wrap; gap: 10px; }
+.estimate-strip > div { flex: 1 1 120px; display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: var(--r-md); background: rgba(75, 46, 131, 0.045); }
+.estimate-strip strong { font-size: 18px; }
+.chapter-notes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.chapter-notes > li { border-top: 1px solid var(--line); }
+.chapter-notes summary { display: flex; gap: 10px; align-items: baseline; padding: 10px 0; cursor: pointer; list-style: none; }
+.chapter-notes summary::-webkit-details-marker { display: none; }
+.chapter-notes summary .mono { width: 18px; text-align: right; flex: none; }
+.chapter-notes-flags { margin-left: auto; display: flex; gap: 4px; flex: none; }
+.bible-place-list { display: flex; flex-direction: column; gap: 6px; margin: 0; padding-left: 18px; }
