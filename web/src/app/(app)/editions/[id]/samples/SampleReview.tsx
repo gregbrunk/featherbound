@@ -2,19 +2,47 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
 import Icon from '@/components/Icon';
 import Select from '@/components/Select';
 import Tuft from '@/components/Tuft';
 import { Guide, Modal, ModalHead, Segmented } from '@/components/ui';
 import type { ChangeNote, SampleComment } from '@/db/schema';
 import { fmtMinutes, money } from '@/lib/estimate';
+import { changedShare, diffWords, plainText, type Seg } from '@/lib/diff';
 import type { Block } from '@/lib/import/types';
 import { approveSamples, resumeRun, rewriteSamples, startSamples } from '../../../books/edition-actions';
 import Sheets, { type SheetView } from './Sheets';
 
 const safeInline = (html: string) => html.replace(/<(?!\/?(em|strong)>|br\s*\/?>)[^>]*>/gi, '');
-const plain = (html: string) => html.replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, '’');
+const plain = plainText;
+
+/** Diff segments as spans, with comment quotes marked on top where they fall. */
+function renderSegs(segs: Seg[], cls: string, marks: { quote: string; text: string }[] = []): ReactNode {
+  const full = segs.map((x) => x.text).join('');
+  const ranges = marks.flatMap((m) => {
+    const at = full.indexOf(m.quote);
+    return at >= 0 ? [{ start: at, end: at + m.quote.length, title: m.text }] : [];
+  });
+  const cuts = new Set<number>([0, full.length]);
+  let pos = 0;
+  for (const x of segs) { cuts.add(pos); pos += x.text.length; }
+  for (const r of ranges) { cuts.add(r.start); cuts.add(r.end); }
+  const points = [...cuts].sort((a, b) => a - b);
+  const out: ReactNode[] = [];
+  for (let k = 0; k < points.length - 1; k++) {
+    const [a, b] = [points[k], points[k + 1]];
+    if (a === b) continue;
+    let acc = 0;
+    const seg = segs.find((x) => { const hit = a >= acc && a < acc + x.text.length; acc += x.text.length; return hit; });
+    const mark = ranges.find((r) => a >= r.start && b <= r.end);
+    let node: ReactNode = full.slice(a, b);
+    if (seg?.changed) node = <span className={cls}>{node}</span>;
+    if (mark) node = <mark title={mark.title}>{node}</mark>;
+    out.push(<span key={a}>{node}</span>);
+  }
+  return out;
+}
 
 type Sample = {
   sectionId: string; number: number; title: string; kidTitle: string | null; recap: string | null; why: string;
@@ -81,6 +109,7 @@ export default function SampleReview({ bookId, bookTitle, edition, run, samples,
   const [draft, setDraft] = useState('');
   const [cap, setCap] = useState(estimate.cap);
   const [picking, setPicking] = useState(false);
+  const [showChanges, setShowChanges] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, start] = useTransition();
   const softRef = useRef<HTMLDivElement>(null);
@@ -88,24 +117,33 @@ export default function SampleReview({ bookId, bookTitle, edition, run, samples,
   const decided = edition.status !== 'samples-ready';
   const sheetsPending = pictures ? !pictures.sheets.length || pictures.sheets.some((x) => x.status !== 'approved') : false;
 
+  // Paragraphs line up one to one, so each pair is diffed on its own.
+  const diffs = useMemo(() => (sample ? sample.original.map((b, i) => {
+    const soft = sample.softened[i];
+    return 'html' in b && soft && 'html' in soft ? diffWords(plainText(b.html), plainText(soft.html)) : null;
+  }) : []), [sample]);
+  const share = useMemo(() => changedShare(diffs.flatMap((d) => d?.right ?? [])), [diffs]);
+
   if (!sample) return <main className="page"><p>No samples yet.</p></main>;
   const chComments = comments.filter((c) => c.sectionId === sample.sectionId);
 
   const onMouseUp = () => {
     const sel = window.getSelection();
     const text = sel?.toString().trim();
-    if (!text || !sel || sel.rangeCount === 0 || !softRef.current?.contains(sel.anchorNode)) return;
+    const anchor = sel?.anchorNode instanceof Element ? sel.anchorNode : sel?.anchorNode?.parentElement;
+    if (!text || !sel || sel.rangeCount === 0 || !softRef.current?.contains(sel.anchorNode) || !anchor?.closest('[data-soft]')) return;
     const rect = sel.getRangeAt(0).getBoundingClientRect();
     setPending({ quote: text.slice(0, 200), x: rect.left + rect.width / 2, y: rect.bottom + window.scrollY });
     setDraft('');
   };
 
-  const highlight = (html: string): ReactNode => {
+  const highlight = (html: string, i: number): ReactNode => {
+    if (showChanges && diffs[i]) return renderSegs(diffs[i]!.right, 'diff-ins', chComments);
     const text = plain(html);
     const hit = chComments.find((c) => text.includes(c.quote));
     if (!hit) return <span dangerouslySetInnerHTML={{ __html: safeInline(html) }} />;
-    const i = text.indexOf(hit.quote);
-    return <>{text.slice(0, i)}<mark title={hit.text}>{hit.quote}</mark>{text.slice(i + hit.quote.length)}</>;
+    const at = text.indexOf(hit.quote);
+    return <>{text.slice(0, at)}<mark title={hit.text}>{hit.quote}</mark>{text.slice(at + hit.quote.length)}</>;
   };
 
   const feedback = () => ({ comments: comments.map((c) => ({ sectionId: c.sectionId, quote: c.quote, text: c.text })), overall: general });
@@ -147,31 +185,64 @@ export default function SampleReview({ bookId, bookTitle, edition, run, samples,
           ))}
           {!decided && <button className="btn btn-ghost btn-sm" onClick={() => setPicking(true)}>Pick other chapters</button>}
         </div>
+        <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+          <button type="button" className={`chip ${showChanges ? '' : 'chip-outline'}`} style={{ border: 'none', cursor: 'pointer' }} aria-pressed={showChanges} onClick={() => setShowChanges(!showChanges)}>
+            <Icon name={showChanges ? 'check' : 'eye'} size={12} /> Highlight changes
+          </button>
+          {showChanges && (
+            <span className="diff-legend tiny muted">
+              <span className="diff-del">removed</span> <span className="diff-ins">added</span> · about {Math.round(share * 100)}% of words changed
+            </span>
+          )}
         <Segmented label="View" value={view} onChange={setView}
           options={[{ value: 'side', label: <><Icon name="columns" size={16} /> <span className="hide-sm">Side by side</span></> }, { value: 'original', label: 'Original' }, { value: 'softened', label: 'Softened' }]} />
+        </div>
       </div>
 
       <div className="sample-grid">
-        <div className={`compare ${view}`}>
-          {view !== 'softened' && (
-            <div className="compare-col original">
-              <div className="compare-head"><span className="chip chip-plain">Original</span></div>
-              <div className="prose"><Blocks blocks={sample.original} bookId={bookId} /></div>
-            </div>
-          )}
-          {view !== 'original' && (
-            <div className="compare-col softened" ref={softRef} onMouseUp={onMouseUp}>
-              <div className="compare-head"><span className="chip"><Icon name="feather" size={12} /> Softened · {edition.name}</span></div>
-              {(sample.kidTitle || sample.recap) && (
+        {view === 'side' ? (
+          // Side by side, one row per paragraph pair, so each original sits next to its adaptation.
+          <div className="compare side aligned" onMouseUp={onMouseUp} ref={softRef}>
+            <div className="compare-row">
+              <div className="compare-col original"><div className="compare-head"><span className="chip chip-plain">Original</span></div></div>
+              <div className="compare-col softened">
+                <div className="compare-head"><span className="chip"><Icon name="feather" size={12} /> Softened · {edition.name}</span></div>
+                {(sample.kidTitle || sample.recap) && (
                 <div className="sample-extras">
                   {sample.kidTitle && <p className="small"><span className="faint">Kid-friendly title: </span><strong>{sample.kidTitle}</strong></p>}
                   {sample.recap && <p className="small"><span className="faint">The story so far: </span>{sample.recap}</p>}
                 </div>
               )}
-              <div className="prose"><Blocks blocks={sample.softened} bookId={bookId} render={highlight} /></div>
+              </div>
             </div>
-          )}
-        </div>
+            {sample.softened.map((b, i) => (
+              <div key={i} className="compare-row">
+                <div className="compare-col original prose">{sample.original[i] && <BlockView b={sample.original[i]} i={i} bookId={bookId} render={showChanges ? (html, i) => (diffs[i] ? renderSegs(diffs[i]!.left, 'diff-del') : <span dangerouslySetInnerHTML={{ __html: safeInline(html) }} />) : undefined} />}</div>
+                <div className="compare-col softened prose" data-soft>{<BlockView b={b} i={i} bookId={bookId} render={highlight} />}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className={`compare ${view}`}>
+            {view === 'original' ? (
+              <div className="compare-col original">
+                <div className="compare-head"><span className="chip chip-plain">Original</span></div>
+                <div className="prose"><Blocks blocks={sample.original} bookId={bookId} render={showChanges ? (html, i) => (diffs[i] ? renderSegs(diffs[i]!.left, 'diff-del') : <span dangerouslySetInnerHTML={{ __html: safeInline(html) }} />) : undefined} /></div>
+              </div>
+            ) : (
+              <div className="compare-col softened" ref={softRef} onMouseUp={onMouseUp}>
+                <div className="compare-head"><span className="chip"><Icon name="feather" size={12} /> Softened · {edition.name}</span></div>
+                {(sample.kidTitle || sample.recap) && (
+                <div className="sample-extras">
+                  {sample.kidTitle && <p className="small"><span className="faint">Kid-friendly title: </span><strong>{sample.kidTitle}</strong></p>}
+                  {sample.recap && <p className="small"><span className="faint">The story so far: </span>{sample.recap}</p>}
+                </div>
+              )}
+                <div className="prose" data-soft><Blocks blocks={sample.softened} bookId={bookId} render={highlight} /></div>
+              </div>
+            )}
+          </div>
+        )}
 
         <aside className="sample-side">
           <div className="card stack-sm">
@@ -277,18 +348,20 @@ export default function SampleReview({ bookId, bookTitle, edition, run, samples,
   );
 }
 
-function Blocks({ blocks, bookId, render }: { blocks: Block[]; bookId: string; render?: (html: string) => ReactNode }) {
-  return blocks.map((b, i) => {
-    if (b.type === 'hr') return <div key={i} className="scene-break" aria-hidden="true">⁂</div>;
-    if (b.type === 'img') {
-      // eslint-disable-next-line @next/next/no-img-element
-      return <figure key={i} className="illus"><img className="illus-img" src={`/api/books/${bookId}/images/${b.imageId}`} alt={b.alt} loading="lazy" /></figure>;
-    }
-    const inner = render ? render(b.html) : <span dangerouslySetInnerHTML={{ __html: safeInline(b.html) }} />;
-    if (b.type === 'h') return <h3 key={i} className="book-h">{inner}</h3>;
-    if (b.type === 'quote') return <blockquote key={i} className="book-quote">{inner}</blockquote>;
-    return <p key={i}>{inner}</p>;
-  });
+function BlockView({ b, i, bookId, render }: { b: Block; i: number; bookId: string; render?: (html: string, i: number) => ReactNode }) {
+  if (b.type === 'hr') return <div className="scene-break" aria-hidden="true">⁂</div>;
+  if (b.type === 'img') {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <figure className="illus"><img className="illus-img" src={`/api/books/${bookId}/images/${b.imageId}`} alt={b.alt} loading="lazy" /></figure>;
+  }
+  const inner = render ? render(b.html, i) : <span dangerouslySetInnerHTML={{ __html: safeInline(b.html) }} />;
+  if (b.type === 'h') return <h3 className="book-h">{inner}</h3>;
+  if (b.type === 'quote') return <blockquote className="book-quote">{inner}</blockquote>;
+  return <p>{inner}</p>;
+}
+
+function Blocks({ blocks, bookId, render }: { blocks: Block[]; bookId: string; render?: (html: string, i: number) => ReactNode }) {
+  return blocks.map((b, i) => <BlockView key={i} b={b} i={i} bookId={bookId} render={render} />);
 }
 
 function PickChapters({ chapters, current, onClose, onPick, busy }: {

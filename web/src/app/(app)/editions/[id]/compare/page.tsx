@@ -7,13 +7,14 @@ import { getBook } from '@/lib/library';
 import { getVersion, listVersionChapters } from '@/lib/runs';
 import { requireAccount } from '@/lib/session';
 import { readJson } from '@/lib/storage';
+import { diffWords, plainText, type Seg } from '@/lib/diff';
 
 // Reads the session on every request; see the note in (app)/layout.tsx.
 export const instant = false;
 
 const MAX_SHOWN = 150;
-const safeInline = (html: string) => html.replace(/<(?!\/?(em|strong)>|br\s*\/?>)[^>]*>/gi, '');
 const text = (b: Block | undefined) => (b && 'html' in b ? b.html : '');
+const segs = (list: Seg[], cls: string) => list.map((x, k) => (x.changed ? <span key={k} className={cls}>{x.text}</span> : <span key={k}>{x.text}</span>));
 
 /** Paragraph-by-paragraph differences between two versions: only chapters and paragraphs that changed. */
 export default async function ComparePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ a?: string; b?: string }> }) {
@@ -56,12 +57,15 @@ export default async function ComparePage({ params, searchParams }: { params: Pr
         {sections.map((s) => (
           <section key={s.id} className="card stack">
             <h3>Chapter {s.number}: {s.title}</h3>
-            {s.pairs.map((p) => (
-              <div key={p.i} className="diff-pair">
-                <p className="diff-old"><span className="tiny">BEFORE</span><span dangerouslySetInnerHTML={{ __html: safeInline(p.before) || '<em>(nothing)</em>' }} /></p>
-                <p className="diff-new"><span className="tiny">AFTER</span><span dangerouslySetInnerHTML={{ __html: safeInline(p.after) }} /></p>
-              </div>
-            ))}
+            {s.pairs.map((p) => {
+              const d = diffWords(plainText(p.before), plainText(p.after));
+              return (
+                <div key={p.i} className="diff-pair">
+                  <p className="diff-old"><span className="tiny">BEFORE</span>{p.before ? <span>{segs(d.left, 'diff-del')}</span> : <em>(nothing)</em>}</p>
+                  <p className="diff-new"><span className="tiny">AFTER</span><span>{segs(d.right, 'diff-ins')}</span></p>
+                </div>
+              );
+            })}
             {s.more > 0 && <p className="small faint">…and {s.more} more changed paragraphs in this chapter.</p>}
           </section>
         ))}
