@@ -1,0 +1,12 @@
+{
+  "name": "adaptation-quality-spike",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "run": "node --env-file=.env run.mjs"
+  },
+  "dependencies": {
+    "ai": "^7.0.143",
+    "zod": "^4.6.7"
+  }
+}
