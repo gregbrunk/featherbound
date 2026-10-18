@@ -1,0 +1,1 @@
+ALTER TABLE "account_settings" ADD COLUMN "prefer_direct_keys" boolean DEFAULT true NOT NULL;

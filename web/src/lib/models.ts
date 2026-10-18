@@ -53,11 +53,16 @@ export const imageModel = (id: string) => IMAGE_MODELS.find((m) => m.id === id) 
 export const isTextModel = (id: string) => TEXT_MODELS.some((m) => m.id === id);
 export const isImageModel = (id: string) => IMAGE_MODELS.some((m) => m.id === id);
 
-/** Which key a model would run on: the gateway key if present, else the provider's own key. */
-export function keyFor(provider: ModelProvider, keys: Partial<Record<KeyProvider, unknown>>): KeyProvider | null {
+/**
+ * Which key a model would run on. With `preferDirect` (the default), a provider's own key wins
+ * for that provider's models and the gateway key covers the rest; otherwise the gateway key
+ * wins whenever there is one.
+ */
+export function keyFor(provider: ModelProvider, keys: Partial<Record<KeyProvider, unknown>>, preferDirect = true): KeyProvider | null {
+  const direct = provider !== 'bfl' && provider !== 'bytedance' && keys[provider] ? provider : null;
+  if (preferDirect && direct) return direct;
   if (keys.gateway) return 'gateway';
-  if (provider !== 'bfl' && provider !== 'bytedance' && keys[provider]) return provider;
-  return null;
+  return direct;
 }
 
 export function textCostUsd(modelId: string, inputTokens: number, outputTokens: number) {

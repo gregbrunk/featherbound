@@ -1,10 +1,11 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useState, useTransition } from 'react';
+import { Switch } from '@/components/ui';
 import Icon from '@/components/Icon';
 import Select from '@/components/Select';
 import { IMAGE_MODELS, TEXT_MODELS, imageModel, textModel, type Strictness } from '@/lib/models';
-import { addEmailAction, removeEmailAction, removeKeyAction, saveKeyAction, saveModelsAction, setPinAction, type FormState } from './actions';
+import { addEmailAction, removeEmailAction, removeKeyAction, saveKeyAction, saveModelsAction, setPinAction, setPreferDirectKeysAction, type FormState } from './actions';
 
 function Status({ state }: { state: FormState }) {
   if (!state?.message) return null;
@@ -161,5 +162,31 @@ export function PinForm({ hasPin }: { hasPin: boolean }) {
         <Status state={state} />
       </div>
     </form>
+  );
+}
+
+/** Which key wins when both the gateway key and a provider's own key could pay for a model. */
+export function PreferDirectForm({ prefer, billing }: { prefer: boolean; billing: { model: string; key: string }[] }) {
+  const [on, setOn] = useState(prefer);
+  const [pending, start] = useTransition();
+  return (
+    <div className="stack-sm">
+      <div className="toggle-row">
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <strong>Use a provider’s own key when I’ve added one</strong>
+          <div className="small muted">
+            For example, with an Anthropic key saved, Claude is billed to your Claude Console account instead of your AI Gateway balance.
+            Models without their own key still use the gateway key.
+          </div>
+        </div>
+        <Switch checked={on} label="Use a provider’s own key when I’ve added one"
+          onChange={(v) => { setOn(v); start(async () => { await setPreferDirectKeysAction(v); }); }} />
+      </div>
+      {billing.length > 0 && (
+        <ul className="small muted" style={{ margin: 0, paddingLeft: 18 }}>
+          {billing.map((b) => <li key={b.model}><strong>{b.model}</strong> bills to {b.key}{pending ? '…' : ''}</li>)}
+        </ul>
+      )}
+    </div>
   );
 }

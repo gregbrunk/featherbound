@@ -2,8 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_MODELS, IMAGE_MODELS, TEXT_MODELS, imageCostUsd, keyFor, textCostUsd } from './models';
 
 describe('keyFor', () => {
-  it('prefers the gateway key', () => {
-    expect(keyFor('anthropic', { gateway: 'k', anthropic: 'k' })).toBe('gateway');
+  it('prefers the provider’s own key by default', () => {
+    expect(keyFor('anthropic', { gateway: 'k', anthropic: 'k' })).toBe('anthropic');
+    expect(keyFor('openai', { gateway: 'k', anthropic: 'k' })).toBe('gateway');
+  });
+  it('prefers the gateway key when asked to', () => {
+    expect(keyFor('anthropic', { gateway: 'k', anthropic: 'k' }, false)).toBe('gateway');
+    expect(keyFor('anthropic', { anthropic: 'k' }, false)).toBe('anthropic');
+  });
+  it('always uses the gateway for gateway-only providers', () => {
+    expect(keyFor('bfl', { gateway: 'k', openai: 'k' })).toBe('gateway');
   });
   it('falls back to the provider key', () => {
     expect(keyFor('anthropic', { anthropic: 'k' })).toBe('anthropic');

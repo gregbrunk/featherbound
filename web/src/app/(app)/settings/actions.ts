@@ -85,3 +85,14 @@ export async function saveBudgetAction(budget: number | null): Promise<FormState
   revalidatePath('/settings');
   return { ok: true };
 }
+
+/** Use a provider's own key for its models instead of the AI Gateway key. */
+export async function setPreferDirectKeysAction(prefer: boolean): Promise<FormState> {
+  const { userId } = await requireAccount();
+  await getDb()
+    .insert(accountSettings)
+    .values({ userId, preferDirectKeys: prefer })
+    .onConflictDoUpdate({ target: accountSettings.userId, set: { preferDirectKeys: prefer, updatedAt: new Date() } });
+  revalidatePath('/settings');
+  return { ok: true };
+}
