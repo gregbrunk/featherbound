@@ -7,11 +7,11 @@ import { allowedEmails } from '@/db/schema';
 import { getAccountSettings } from '@/lib/account';
 import { getModelChoices } from '@/lib/ai';
 import { listKeys } from '@/lib/keys';
-import { IMAGE_MODELS, PROVIDERS, TEXT_MODELS, keyFor } from '@/lib/models';
+import { IMAGE_MODELS, PROVIDERS, TEXT_MODELS, imageModel, keyFor, textModel } from '@/lib/models';
 import { requireAccount } from '@/lib/session';
 import { getUsage } from '@/lib/usage';
 import UsageView from './Usage';
-import { AddEmailForm, KeyRow, ModelsForm, PinForm, RemoveEmailButton } from './forms';
+import { AddEmailForm, KeyRow, ModelsForm, PinForm, PreferDirectForm, RemoveEmailButton } from './forms';
 
 
 // Reads the session on every request; see the note in (app)/layout.tsx.
@@ -62,10 +62,16 @@ async function UsageTab({ userId }: { userId: string }) {
 }
 
 async function ModelsTab({ userId }: { userId: string }) {
-  const [keys, choices] = await Promise.all([listKeys(userId), getModelChoices(userId)]);
+  const [keys, choices, settings] = await Promise.all([listKeys(userId), getModelChoices(userId), getAccountSettings(userId)]);
+  const prefer = settings?.preferDirectKeys ?? true;
   const byProvider = Object.fromEntries(keys.map((k) => [k.provider, k]));
   const working = Object.fromEntries(keys.filter((k) => k.status === 'ok').map((k) => [k.provider, true]));
-  const reachable = Object.fromEntries([...TEXT_MODELS, ...IMAGE_MODELS].map((m) => [m.id, keyFor(m.provider, working) !== null]));
+  const reachable = Object.fromEntries([...TEXT_MODELS, ...IMAGE_MODELS].map((m) => [m.id, keyFor(m.provider, working, prefer) !== null]));
+  const keyName = Object.fromEntries(PROVIDERS.map((p) => [p.id, p.id === 'gateway' ? 'your AI Gateway balance' : `your ${p.name} key`]));
+  const billing = [textModel(choices.text), ...choices.images.map(imageModel)].flatMap((m) => {
+    const k = keyFor(m.provider, working, prefer);
+    return k ? [{ model: m.name, key: keyName[k] }] : [];
+  });
   return (
     <div className="stack-lg">
       <div className="guide">
@@ -81,6 +87,10 @@ async function ModelsTab({ userId }: { userId: string }) {
           <KeyRow key={p.id} provider={p.id} name={p.name} hint={p.hint} recommended={p.recommended}
             saved={byProvider[p.id] ? { provider: p.id, last4: byProvider[p.id].last4, status: byProvider[p.id].status, statusDetail: byProvider[p.id].statusDetail } : undefined} />
         ))}
+      </div>
+      <div className="card stack">
+        <h3>Which key pays</h3>
+        <PreferDirectForm prefer={prefer} billing={billing} />
       </div>
       <ModelsForm text={choices.text} images={choices.images} reachable={reachable} />
     </div>

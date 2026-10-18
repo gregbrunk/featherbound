@@ -57,6 +57,13 @@
       "when": 1792299498089,
       "tag": "0007_run_hook",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792302001484,
+      "tag": "0008_prefer_direct_keys",
+      "breakpoints": true
     }
   ]
 }

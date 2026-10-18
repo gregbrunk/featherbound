@@ -3,7 +3,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { createGateway, type LanguageModel } from 'ai';
 import { eq } from 'drizzle-orm';
 import { getDb } from '@/db';
-import { aiCalls, modelSettings, type KeyProvider } from '@/db/schema';
+import { accountSettings, aiCalls, modelSettings, type KeyProvider } from '@/db/schema';
 import { getSecretKeys } from './keys';
 import { DEFAULT_MODELS, keyFor, textModel } from './models';
 
@@ -26,8 +26,8 @@ export async function getModelChoices(userId: string) {
 export async function getTextModel(userId: string): Promise<{ model: LanguageModel; modelId: string; keySource: KeyProvider }> {
   const choices = await getModelChoices(userId);
   const m = textModel(choices.text);
-  const keys = await getSecretKeys(userId);
-  const source = keyFor(m.provider, keys);
+  const [keys, prefs] = await Promise.all([getSecretKeys(userId), getDb().select({ preferDirect: accountSettings.preferDirectKeys }).from(accountSettings).where(eq(accountSettings.userId, userId)).limit(1)]);
+  const source = keyFor(m.provider, keys, prefs[0]?.preferDirect ?? true);
   if (!source) throw new NoKeyError(m.name);
   const key = keys[source]!;
   switch (source) {
