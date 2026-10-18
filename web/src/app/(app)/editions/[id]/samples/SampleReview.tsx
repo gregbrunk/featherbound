@@ -13,6 +13,8 @@ import { changedShare, diffWords, plainText, type Seg } from '@/lib/diff';
 import type { Block } from '@/lib/import/types';
 import { approveSamples, resumeRun, rewriteSamples, startSamples } from '../../../books/edition-actions';
 import Sheets, { type SheetView } from './Sheets';
+import BudgetNote from '@/components/BudgetNote';
+import type { BudgetStatus } from '@/lib/usage';
 
 const safeInline = (html: string) => html.replace(/<(?!\/?(em|strong)>|br\s*\/?>)[^>]*>/gi, '');
 const plain = plainText;
@@ -90,7 +92,7 @@ export function SamplesWriting({ bookId, bookTitle, editionName, round, runId, c
   );
 }
 
-export default function SampleReview({ bookId, bookTitle, edition, run, samples, chapters, estimate, pictures }: {
+export default function SampleReview({ bookId, bookTitle, edition, run, samples, chapters, estimate, pictures, budget }: {
   bookId: string;
   bookTitle: string;
   edition: { id: string; name: string; status: string; cap: number; guidance: string[] };
@@ -99,6 +101,7 @@ export default function SampleReview({ bookId, bookTitle, edition, run, samples,
   chapters: { id: string; label: string }[];
   estimate: { total: number; minutes: number; samples: number; cap: number };
   pictures: { look: string | null; error: string | null; sheets: SheetView[] } | null;
+  budget: BudgetStatus | null;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState(samples[0]?.sectionId ?? '');
@@ -311,6 +314,7 @@ export default function SampleReview({ bookId, bookTitle, edition, run, samples,
                     <span className="hint" style={{ flex: 1, minWidth: 150 }}>I’ll pause and ask before going past it.</span>
                   </div>
                 </div>
+                <BudgetNote status={budget} cost={estimate.total} />
                 {sheetsPending && <p className="tiny muted">Approve every character above first, so all the pictures match.</p>}
                 <button className="btn btn-primary" disabled={busy || sheetsPending} onClick={() => act(() => approveSamples(edition.id, run.id, feedback(), cap))}>
                   <Icon name="check" size={18} /> {busy ? 'Starting…' : 'Looks great: write the whole book'}

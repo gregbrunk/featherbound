@@ -1,16 +1,23 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Icon from '@/components/Icon';
+import AlignedCompare from '@/components/AlignedCompare';
 import Tuft from '@/components/Tuft';
 import { Modal, ModalHead, Segmented } from '@/components/ui';
 import type { Block } from '@/lib/import/types';
 import { addBookmark, removeBookmark, saveProgress } from '../../../(app)/books/actions';
+import { lockHandoff, unlockHandoff } from '../../handoff-actions';
 
 type Section = { id: string; title: string; subtitle?: string };
 type Bookmark = { id: string; sectionId: string; fraction: number; label: string };
 type Props = {
+  /** Editions can show the original alongside (compare mode); this is where its text comes from. */
+  compareBase?: string;
+  /** Editions can be locked for hand-off; `locked` means this device is locked to it now. */
+  handoff?: { editionId: string; locked: boolean };
   bookId: string;
   /** Where chapter text comes from; defaults to the original book's sections. */
   textBase?: string;
@@ -58,7 +65,7 @@ const subscribeWide = (l: () => void) => { const m = window.matchMedia(WIDE); m.
 // Chapter html is produced by our parser (only <em>, <strong>, <br>); this is a second guard.
 const safeInline = (html: string) => html.replace(/<(?!\/?(em|strong)>|br\s*\/?>)[^>]*>/gi, '');
 
-export default function Reader({ bookId, textBase, textQuery = '', title, subtitle, backHref, target, sections, start, bookmarks: initialBookmarks }: Props) {
+export default function Reader({ compareBase, handoff, bookId, textBase, textQuery = '', title, subtitle, backHref, target, sections, start, bookmarks: initialBookmarks }: Props) {
   const startIndex = Math.max(0, sections.findIndex((s) => s.id === start.sectionId));
   const [index, setIndex] = useState(startIndex);
   const [loaded, setLoaded] = useState<{ sectionId: string; blocks: Block[] } | null>(null);
@@ -66,10 +73,13 @@ export default function Reader({ bookId, textBase, textQuery = '', title, subtit
   const [page, setPage] = useState(0);
   const [pages, setPages] = useState(1);
   const [chrome, setChrome] = useState(true);
-  const [panel, setPanel] = useState<null | 'toc' | 'type'>(null);
+  const [panel, setPanel] = useState<null | 'toc' | 'type' | 'lock' | 'unlock'>(null);
+  const locked = Boolean(handoff?.locked);
+  const [compare, setCompare] = useState(false);
   const prefs = useSyncExternalStore(subscribePrefs, readPrefs, () => DEFAULT_PREFS);
   const setPrefs = writePrefs;
   const wide = useSyncExternalStore(subscribeWide, () => window.matchMedia(WIDE).matches, () => false);
+  const comparing = compare && wide && Boolean(compareBase) && !locked;
   const [bookmarks, setBookmarks] = useState(initialBookmarks);
   const [geom, setGeom] = useState({ col: 600, gap: 64 });
   const pagerRef = useRef<HTMLDivElement>(null);
@@ -148,14 +158,17 @@ export default function Reader({ bookId, textBase, textQuery = '', title, subtit
     saveTimer.current = setTimeout(() => void saveProgress(target, s.id, fraction, overall), 1200);
   }, [index, page, pages, blocks, sections, target, fraction, overall]);
 
+  // In compare mode the whole chapter scrolls, so next and previous move by chapter.
   const next = useCallback(() => {
+    if (comparing) { if (index < sections.length - 1) { setIndex(index + 1); setPage(0); } return; }
     if (page < pages - 1) setPage(page + 1);
     else if (index < sections.length - 1) { setIndex(index + 1); setPage(0); }
-  }, [page, pages, index, sections.length]);
+  }, [page, pages, index, sections.length, comparing]);
   const prev = useCallback(() => {
+    if (comparing) { if (index > 0) { setIndex(index - 1); setPage(0); } return; }
     if (page > 0) setPage(page - 1);
     else if (index > 0) { goLast.current = true; setIndex(index - 1); }
-  }, [page, index]);
+  }, [page, index, comparing]);
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
@@ -211,9 +224,11 @@ export default function Reader({ bookId, textBase, textQuery = '', title, subtit
   const section = sections[index];
 
   return (
-    <div className={`reader theme-${prefs.theme} ${chrome ? '' : 'immersive'}`}>
+    <div className={`reader theme-${prefs.theme} ${chrome ? '' : 'immersive'} ${locked ? 'locked' : ''}`}>
       <header className="reader-bar">
-        <Link href={backHref} className="btn btn-ghost btn-icon" aria-label="Back to book"><Icon name="left" /></Link>
+        {locked
+          ? <span className="lock-badge"><Icon name="lock" size={14} /> Hand-off mode</span>
+          : <Link href={backHref} className="btn btn-ghost btn-icon" aria-label="Back to book"><Icon name="left" /></Link>}
         <div className="reader-title">
           <strong className="ellipsis">{title}</strong>
           <span className="tiny ellipsis">{subtitle}</span>
@@ -221,12 +236,32 @@ export default function Reader({ bookId, textBase, textQuery = '', title, subtit
         <div className="row" style={{ gap: 2 }}>
           <button className="btn btn-ghost btn-icon" onClick={() => setPanel('toc')} aria-label="Contents and bookmarks"><Icon name="toc" /></button>
           <button className="btn btn-ghost btn-icon" onClick={() => setPanel('type')} aria-label="Reading settings"><Icon name="text" /></button>
-          <button className={`btn btn-ghost btn-icon ${here ? 'on' : ''}`} onClick={() => void toggleBookmark()} aria-label={here ? 'Remove bookmark' : 'Bookmark this page'} aria-pressed={Boolean(here)}>
-            <Icon name="bookmark" />
-          </button>
+          {!locked && (
+            <button className={`btn btn-ghost btn-icon ${here ? 'on' : ''}`} onClick={() => void toggleBookmark()} aria-label={here ? 'Remove bookmark' : 'Bookmark this page'} aria-pressed={Boolean(here)}>
+              <Icon name="bookmark" />
+            </button>
+          )}
+          {compareBase && !locked && wide && (
+            <button className={`btn btn-ghost btn-icon ${compare ? 'on' : ''}`} onClick={() => setCompare(!compare)} aria-label="Compare with original" aria-pressed={compare} title="Compare with original">
+              <Icon name="columns" />
+            </button>
+          )}
+          {handoff && !locked && (
+            <button className="btn btn-ghost btn-icon" onClick={() => setPanel('lock')} aria-label="Hand-off mode" title="Hand-off mode"><Icon name="lock" /></button>
+          )}
+          {locked && <HoldToUnlock onUnlocked={() => setPanel('unlock')} />}
         </div>
       </header>
 
+      {comparing && sections[index] ? (
+        <AlignedCompare
+          originalUrl={`${compareBase}/${sections[index].id}`}
+          softenedUrl={`${textBase ?? `/api/books/${bookId}/sections`}/${sections[index].id}${textQuery}${textQuery ? '&' : '?'}raw=1`}
+          bookId={bookId}
+          fontFamily={font.css}
+          fontSize={prefs.size * 0.85}
+        />
+      ) : (
       <div className="pager" ref={pagerRef} onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
         {!blocks ? (
           <div className="center stack" style={{ alignItems: 'center', paddingTop: '20vh' }}><Tuft pose="read" size={80} /><span className="small">Opening…</span></div>
@@ -257,12 +292,15 @@ export default function Reader({ bookId, textBase, textQuery = '', title, subtit
               if (b.type === 'quote') return <blockquote key={i} className={`book-quote${b.html.startsWith('<em>The story so far') ? ' recap' : ''}`} dangerouslySetInnerHTML={{ __html: safeInline(b.html) }} />;
               return <p key={i} dangerouslySetInnerHTML={{ __html: safeInline(b.html) }} />;
             })}
-            {index === sections.length - 1 && (
+            {index === sections.length - 1 ? (
               <div className="end-note"><Tuft pose="cheer" size={70} still /><p>The end.</p></div>
+            ) : (
+              <div className="end-note chapter-end"><Tuft pose="cheer" size={48} still /><p>That’s chapter {index + 1}! Next: {sections[index + 1]?.title}</p></div>
             )}
           </div>
         )}
       </div>
+      )}
 
       {zoom && (
         <div className="scrim" onClick={() => setZoom(null)} role="dialog" aria-modal="true" aria-label="Picture">
@@ -289,7 +327,7 @@ export default function Reader({ bookId, textBase, textQuery = '', title, subtit
       {panel === 'toc' && (
         <Modal onClose={() => setPanel(null)} label="Contents">
           <ModalHead title="Contents" onClose={() => setPanel(null)} />
-          {bookmarks.length > 0 && (
+          {bookmarks.length > 0 && !locked && (
             <div className="stack-sm" style={{ marginBottom: 14 }}>
               <span className="label">Bookmarks</span>
               <ul className="toc">
@@ -313,6 +351,9 @@ export default function Reader({ bookId, textBase, textQuery = '', title, subtit
           </ol>
         </Modal>
       )}
+
+      {panel === 'lock' && handoff && <LockPanel editionId={handoff.editionId} title={title} onClose={() => setPanel(null)} />}
+      {panel === 'unlock' && <UnlockPanel onClose={() => setPanel(null)} />}
 
       {panel === 'type' && (
         <Modal onClose={() => setPanel(null)} label="Reading settings">
@@ -362,6 +403,124 @@ export default function Reader({ bookId, textBase, textQuery = '', title, subtit
           </div>
         </Modal>
       )}
+    </div>
+  );
+}
+
+/** Explain hand-off mode, then lock this device to the edition. */
+function LockPanel({ editionId, title, onClose }: { editionId: string; title: string; onClose: () => void }) {
+  const router = useRouter();
+  const [message, setMessage] = useState<{ text: string; needsPin?: boolean } | null>(null);
+  const [busy, setBusy] = useState(false);
+  return (
+    <Modal onClose={onClose} label="Hand-off mode">
+      <ModalHead title="Handing it to a young reader?" pose="guard" onClose={onClose} />
+      <div className="stack">
+        <p>I’ll lock Featherbound to <strong>{title}</strong>. They can turn pages, use the contents and change the text size, but they can’t leave this book or open anything else, even if the app is closed and opened again.</p>
+        <div className="card card-tinted small row" style={{ gap: 10 }}>
+          <Icon name="key" size={18} />
+          <span>To unlock: <strong>press and hold me</strong> (top right) for 2 seconds, then enter your parent PIN.</span>
+        </div>
+        {message && (
+          <p className="small status-bad">{message.text} {message.needsPin && <Link href="/settings?tab=handoff">Set a PIN</Link>}</p>
+        )}
+        <div className="row" style={{ justifyContent: 'flex-end' }}>
+          <button className="btn btn-ghost" onClick={onClose}>Not now</button>
+          <button className="btn btn-primary" disabled={busy} onClick={async () => {
+            setBusy(true);
+            const r = await lockHandoff(editionId);
+            setBusy(false);
+            if (!r.ok) { setMessage({ text: r.message, needsPin: r.needsPin }); return; }
+            onClose();
+            router.refresh();
+          }}>
+            <Icon name="lock" size={18} /> {busy ? 'Locking…' : 'Lock & hand over'}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function UnlockPanel({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
+  return (
+    <Modal onClose={onClose} label="Unlock">
+      <PinPad
+        onCancel={onClose}
+        onDone={async (pin) => {
+          const r = await unlockHandoff(pin);
+          if (!r.ok) return r.message;
+          router.push(r.bookId ? `/books/${r.bookId}` : '/');
+          return null;
+        }}
+      />
+    </Modal>
+  );
+}
+
+/** Grown-ups press and hold Tuft for two seconds; a quick tap does nothing. */
+function HoldToUnlock({ onUnlocked }: { onUnlocked: () => void }) {
+  const [p, setP] = useState(0);
+  const timer = useRef<number | null>(null);
+  const stop = () => { if (timer.current) cancelAnimationFrame(timer.current); timer.current = null; setP(0); };
+  const start = () => {
+    const t0 = Date.now();
+    const tick = () => {
+      const v = Math.min(1, (Date.now() - t0) / 2000);
+      setP(v);
+      if (v >= 1) { stop(); onUnlocked(); return; }
+      timer.current = requestAnimationFrame(tick);
+    };
+    timer.current = requestAnimationFrame(tick);
+  };
+  return (
+    <button className="hold-unlock" onPointerDown={start} onPointerUp={stop} onPointerLeave={stop} onPointerCancel={stop} onContextMenu={(e) => e.preventDefault()}
+      onKeyDown={(e) => { if (e.key === 'Enter' && !e.repeat) start(); }} onKeyUp={stop}
+      aria-label="Grown-ups: press and hold to unlock">
+      <svg viewBox="0 0 48 48" className="hold-ring" aria-hidden="true"><circle cx="24" cy="24" r="21" /><circle cx="24" cy="24" r="21" style={{ strokeDashoffset: 132 - 132 * p }} className="fill" /></svg>
+      <Tuft pose="guard" size={34} still />
+    </button>
+  );
+}
+
+function PinPad({ onDone, onCancel }: { onDone: (pin: string) => Promise<string | null>; onCancel: () => void }) {
+  const [v, setV] = useState('');
+  const [bad, setBad] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+  const press = (d: string) => {
+    if (v.length >= 4 || checking) return;
+    const nv = v + d;
+    setV(nv);
+    setBad(null);
+    if (nv.length === 4) {
+      setChecking(true);
+      void onDone(nv).then((err) => {
+        setChecking(false);
+        if (err) { setBad(err); setV(''); }
+      });
+    }
+  };
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (/^\d$/.test(e.key)) press(e.key);
+      else if (e.key === 'Backspace') setV((x) => x.slice(0, -1));
+    };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  });
+  return (
+    <div className="stack center" style={{ alignItems: 'center' }}>
+      <Tuft pose={bad ? 'worry' : 'guard'} size={80} />
+      <h2>Grown-ups only</h2>
+      <p className="small muted" role="status">{bad ?? 'Enter your parent PIN'}</p>
+      <div className={`pin-dots ${bad ? 'shake' : ''}`} aria-label={`${v.length} of 4 digits entered`}>{[0, 1, 2, 3].map((i) => <i key={i} className={i < v.length ? 'on' : ''} />)}</div>
+      <div className="pin-pad">
+        {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => <button key={d} onClick={() => press(d)}>{d}</button>)}
+        <button onClick={onCancel} className="pin-cancel">Cancel</button>
+        <button onClick={() => press('0')}>0</button>
+        <button onClick={() => setV(v.slice(0, -1))} aria-label="Delete"><Icon name="left" /></button>
+      </div>
     </div>
   );
 }

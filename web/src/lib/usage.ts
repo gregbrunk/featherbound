@@ -1,6 +1,6 @@
-import { desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, sql } from 'drizzle-orm';
 import { getDb } from '@/db';
-import { aiCalls, bookAnalyses, books, editionRuns, editions } from '@/db/schema';
+import { accountSettings, aiCalls, bookAnalyses, books, editionRuns, editions } from '@/db/schema';
 import { estimateAnalysis } from './estimate';
 
 // Usage dashboard figures, all from recorded AI calls (src/lib/ai.ts recordAiCall).
@@ -117,3 +117,19 @@ export async function getUsage(userId: string, now = new Date()) {
 }
 
 export type Usage = Awaited<ReturnType<typeof getUsage>>;
+
+/** This month's spend against the monthly budget, if one is set. Cheap: one sum. */
+export async function budgetStatus(userId: string, now = new Date()) {
+  const db = getDb();
+  const [settings] = await db.select({ budget: accountSettings.monthlyBudget }).from(accountSettings).where(eq(accountSettings.userId, userId)).limit(1);
+  if (!settings?.budget) return null;
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const [{ spent }] = await db
+    .select({ spent: sql<number>`coalesce(sum(${aiCalls.costUsd}), 0)::float` })
+    .from(aiCalls)
+    .where(and(eq(aiCalls.userId, userId), gte(aiCalls.createdAt, start)));
+  const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  return { budget: Number(settings.budget), spent, projected: (spent / Math.max(1, now.getDate())) * days, month: now.toLocaleDateString('en-US', { month: 'long' }) };
+}
+
+export type BudgetStatus = NonNullable<Awaited<ReturnType<typeof budgetStatus>>>;

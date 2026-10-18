@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   // pdf.js loads its worker and fonts from its own package files at runtime.
-  serverExternalPackages: ['pdfjs-dist', '@sparticuz/chromium', 'puppeteer-core'],
+  serverExternalPackages: ['pdfjs-dist', '@sparticuz/chromium', 'puppeteer-core', 'sharp'],
   outputFileTracingIncludes: {
     '/api/editions/\\[id\\]/export': CHROMIUM,
     '/api/books/\\[id\\]/export': CHROMIUM,

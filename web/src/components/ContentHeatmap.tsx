@@ -48,7 +48,7 @@ export default function ContentHeatmap({ chapters, only }: { chapters: HeatChapt
           <div className="heat-sum small">
             {r.any === 0 ? <span className="faint">None found</span> : (
               <>
-                <strong style={{ color: r.peak >= 3 ? 'var(--ruby)' : r.peak === 2 ? '#b8661c' : 'var(--gold-deep)' }}>{WORDS[r.peak]}</strong>
+                <strong style={{ color: r.peak >= 3 ? 'var(--ruby)' : r.peak === 2 ? '#a65c19' : 'var(--gold-deep)' }}>{WORDS[r.peak]}</strong>
                 <span className="muted">{r.hot.length ? ` · ch. ${r.hot.slice(0, 4).join(', ')}${r.hot.length > 4 ? '…' : ''}` : ''}</span>
               </>
             )}

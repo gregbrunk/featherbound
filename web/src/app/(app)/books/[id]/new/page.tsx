@@ -6,6 +6,7 @@ import { getEdition, getReadyAnalysis, listSectionAnalyses } from '@/lib/analysi
 import { editionSettingsSchema } from '@/lib/editions';
 import { getBook, getSeries, listSections } from '@/lib/library';
 import { requireAccount } from '@/lib/session';
+import { budgetStatus } from '@/lib/usage';
 import Wizard from './Wizard';
 
 // Reads the session on every request; see the note in (app)/layout.tsx.
@@ -22,12 +23,13 @@ export default async function NewEditionPage({ params, searchParams }: { params:
   if (book.status !== 'ready') redirect(`/books/${book.id}/review`);
 
   const sourceId = edit ?? from;
-  const [sections, ready, series, models, source] = await Promise.all([
+  const [sections, ready, series, models, source, budget] = await Promise.all([
     listSections(userId, book.id),
     getReadyAnalysis(userId, book.id),
     book.seriesId ? getSeries(userId, book.seriesId) : null,
     getModelChoices(userId),
     sourceId ? getEdition(userId, sourceId) : null,
+    budgetStatus(userId),
   ]);
   const chapters = sections.filter((s) => s.include);
   const rows = ready ? await listSectionAnalyses(userId, ready.id) : [];
@@ -57,6 +59,7 @@ export default async function NewEditionPage({ params, searchParams }: { params:
       models={models}
       start={start}
       editingId={editing}
+      budget={budget}
     />
   );
 }

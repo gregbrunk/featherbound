@@ -6,6 +6,7 @@ import { listRuns } from '@/lib/runs';
 import { requireAccount } from '@/lib/session';
 import LibraryView, { type LibraryBook, type ResumeItem, type WorkItem } from './LibraryView';
 import Notices from './Notices';
+import { budgetStatus } from '@/lib/usage';
 
 // Reads the session on every request; see the note in (app)/layout.tsx.
 export const instant = false;
@@ -15,7 +16,7 @@ export default async function LibraryPage() {
   const settings = await getAccountSettings(account.userId);
   if (!settings?.welcomedAt) redirect('/welcome');
 
-  const [books, series, progress, prefs, notices, editions, runs] = await Promise.all([
+  const [books, series, progress, prefs, notices, editions, runs, budget] = await Promise.all([
     listBooks(account.userId),
     listSeries(account.userId),
     listProgress(account.userId),
@@ -23,6 +24,7 @@ export default async function LibraryPage() {
     listNotices(account.userId),
     listAccountEditions(account.userId),
     listRuns(account.userId),
+    budgetStatus(account.userId),
   ]);
   const titles = new Map(books.map((b) => [b.id, b.title]));
   const progressByTarget = new Map(progress.map((p) => [p.target, p]));
@@ -106,7 +108,7 @@ export default async function LibraryPage() {
       resume={resume}
       working={working}
       initialPrefs={prefs}
-      notices={<Notices items={notices.flatMap((n) => (n.notice ? [{ id: n.id, name: n.name, notice: n.notice, bookTitle: titles.get(n.bookId) ?? 'your book' }] : []))} />}
+      notices={<Notices budget={budget} items={notices.flatMap((n) => (n.notice ? [{ id: n.id, name: n.name, notice: n.notice, bookTitle: titles.get(n.bookId) ?? 'your book' }] : []))} />}
     />
   );
 }

@@ -1,20 +1,37 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import Tuft from './Tuft';
 import type { TuftPose } from './Tuft';
 import Icon from './Icon';
 
 export function Modal({ onClose, children, wide = false, label }: { onClose: () => void; children: ReactNode; wide?: boolean; label: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const close = useRef(onClose);
+  useEffect(() => { close.current = onClose; });
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    // Keyboard: focus moves into the dialog, Tab stays inside it, Escape closes it, and focus
+    // goes back where it was afterwards.
+    const before = document.activeElement as HTMLElement | null;
+    const focusables = () => [...(ref.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), textarea, select, [tabindex]:not([tabindex="-1"])') ?? [])];
+    const first = focusables().find((el) => el.getAttribute('aria-label') !== 'Close') ?? focusables()[0];
+    if (!ref.current?.contains(document.activeElement)) (first ?? ref.current)?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { close.current(); return; }
+      if (e.key !== 'Tab') return;
+      const els = focusables();
+      if (!els.length) return;
+      const [a, z] = [els[0], els[els.length - 1]];
+      if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); }
+      else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); }
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+    return () => { window.removeEventListener('keydown', onKey); before?.focus?.(); };
+  }, []);
   return (
     <div className="scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`modal ${wide ? 'modal-wide' : ''}`} role="dialog" aria-modal="true" aria-label={label}>
+      <div className={`modal ${wide ? 'modal-wide' : ''}`} role="dialog" aria-modal="true" aria-label={label} ref={ref} tabIndex={-1}>
         {children}
       </div>
     </div>
