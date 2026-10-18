@@ -1,0 +1,4 @@
+node_modules
+out/
+render.out.cjs
+svgs.json

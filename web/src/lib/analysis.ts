@@ -55,6 +55,15 @@ export async function listEditions(userId: string, bookId: string) {
     .orderBy(desc(editions.createdAt));
 }
 
+/** Every edition on the account, newest first. */
+export async function listAccountEditions(userId: string) {
+  return getDb()
+    .select({ id: editions.id, bookId: editions.bookId, name: editions.name, status: editions.status })
+    .from(editions)
+    .where(eq(editions.userId, userId))
+    .orderBy(desc(editions.createdAt));
+}
+
 export async function getEdition(userId: string, editionId: string) {
   const [row] = await getDb().select().from(editions).where(and(eq(editions.userId, userId), eq(editions.id, editionId))).limit(1);
   return row ?? null;

@@ -37,6 +37,16 @@ export async function listSections(userId: string, bookId: string) {
     .orderBy(asc(bookSections.position));
 }
 
+/** Every section of the given books, in reading order. */
+export async function listSectionsForBooks(userId: string, bookIds: string[]) {
+  if (!bookIds.length) return [];
+  return getDb()
+    .select({ id: bookSections.id, bookId: bookSections.bookId, title: bookSections.title, kind: bookSections.kind, include: bookSections.include })
+    .from(bookSections)
+    .where(and(eq(bookSections.userId, userId), inArray(bookSections.bookId, bookIds)))
+    .orderBy(asc(bookSections.position));
+}
+
 export async function getSection(userId: string, bookId: string, sectionId: string) {
   if (!isUuid(sectionId)) return null;
   const [row] = await getDb()
