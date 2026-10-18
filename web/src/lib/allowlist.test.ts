@@ -3,6 +3,6 @@ import { normalizeEmail } from './allowlist';
 
 describe('normalizeEmail', () => {
   it('trims and lowercases', () => {
-    expect(normalizeEmail('  Parent@Example.com ')).toBe('parent@example.com');
+    expect(normalizeEmail('  Jane.Doe@Example.COM ')).toBe('jane.doe@example.com');
   });
 });

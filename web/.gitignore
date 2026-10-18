@@ -43,3 +43,8 @@ next-env.d.ts
 
 # workflow (generated routes)
 src/app/.well-known/workflow/
+
+# Agent skills installed locally by integrations
+/.agents/
+/.claude/skills/
+skills-lock.json

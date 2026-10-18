@@ -40,7 +40,7 @@ The app is a whimsical, fantasy-themed library that makes reading feel fun. A so
 
 - **One account, one library.** Each approved Google account gets its own private library, with its own books, editions, API keys, settings, PIN and usage. Accounts never see each other's data.
 - **Approved accounts** sign in with Google. Only emails on the allow list can sign in.
-- **Admin** (parent@example.com) is the first approved account. The admin can also add and remove emails on the allow list in Settings. That's the only extra power: the admin can't see or use anyone else's library or keys.
+- **Admin** (the person who sets Featherbound up) is the first approved account. The admin can also add and remove emails on the allow list in Settings. That's the only extra power: the admin can't see or use anyone else's library or keys.
 - **A new account starts fresh:** an empty library and a short first-visit guide from the mascot (add your AI key, then add your first book).
 - **Reading progress** and bookmarks are saved for each book and edition, and synced across that account's devices.
 
@@ -218,7 +218,7 @@ Parents can save their settings as **presets** (e.g. "Age 6 read-aloud, gentle")
 
 ### 5.12 Accounts & access (P0)
 - Sign in with Google.
-- Only emails on the **allow list** can get in. To start, that's parent@example.com, the admin. The admin can add and remove emails in **Settings → Sign-in access** at any time.
+- Only emails on the **allow list** can get in. To start, that's the admin. The admin can add and remove emails in **Settings → Sign-in access** at any time.
 - Anyone not on the list sees a friendly "This library is private" page.
 - **Every account is separate** (see §3). Adding someone to the allow list gives them their own empty library, not access to yours.
 - **First visit:** a new account lands on a welcome screen where the mascot walks them through adding their AI key and their first book.
@@ -322,7 +322,7 @@ The prototype is **locked** at git tag `prototype-v1` and is the design referenc
 | 2026-10-17 | Editions are always full length. | The goal is a softer version of the real book, not a summary. |
 | 2026-10-17 | Plot outcomes never change; only how events are shown. | Keeps story continuity and the author's intent. |
 | 2026-10-17 | Picture Book mode: AI-generated art in one consistent style is the main approach. Found official or fan art is used as reference, or placed by hand. | Matching found art to scenes automatically is unreliable, and pictures from different artists clash. |
-| 2026-10-17 | Sign-in is Google with an approved list, starting with parent@example.com. More emails can be added later. | Private access. |
+| 2026-10-17 | Sign-in is Google with an approved list, starting with the admin. More emails can be added later. | Private access. |
 | 2026-10-17 | App name is **Featherbound**; mascot is a soft, scholarly fantasy bird. | Feather-soft fits the "softer books" idea, and it sounds like a fantasy library. |
 | 2026-10-17 | Library nests editions under books and books under series by default, with View / Sort / Filter controls to change it. | Keeps the shelf tidy as editions pile up. |
 | 2026-10-17 | No settings carry over across a series. Series and book number are suggested by AI on import and confirmed by the parent. | Every book deserves its own decisions; AI keeps the shelf organized. |

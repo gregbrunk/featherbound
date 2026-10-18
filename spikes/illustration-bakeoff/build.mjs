@@ -60,6 +60,8 @@ function cell(model, test) {
     return `<td class="fail"><div class="refusal"><strong>${why}</strong><small>${esc(r.error.replace(/Request id:.*|request ID \S+/i, '').slice(0, 220))}</small></div></td>`;
   }
   const web = `web/${r.file.split('/')[1].replace(/\.\w+$/, '.jpg')}`;
+  // Pictures of in-copyright characters (the likeness probes) aren't kept; show that they drew it.
+  if (!fs.existsSync(web)) return `<td class="fail"><div class="refusal"><strong>Drew it</strong><small>Picture not kept: it shows in-copyright characters.</small></div></td>`;
   const flags = [r.fallback && '<span class="flag">retried with shorter style line after moderation</span>'].filter(Boolean).join('');
   return `<td><img class="zoom" src="${dataUri(web)}" alt=""${esc(model.label)}: ${esc(test.title)}">
     <div class="meta">${(r.ms / 1000).toFixed(0)}s · $${Number(r.cost ?? 0).toFixed(3)}</div>${flags}</td>`;

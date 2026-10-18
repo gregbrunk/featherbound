@@ -2,3 +2,8 @@ out/
 probe/*.jpeg
 probe/*.png
 probe/*.webp
+
+# Built locally by build.mjs; likeness-probe pictures are never committed
+index.html
+web/*likeness*
+out/

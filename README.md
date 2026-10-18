@@ -120,7 +120,7 @@ npx vercel@latest env pull .env.local
 
 # Create the database tables and add the first admin to the allow list
 npm run db:migrate
-npm run db:seed        # edit scripts/seed.ts to use your own email first
+ADMIN_EMAIL=you@example.com npm run db:seed
 
 npm run dev            # http://localhost:3000
 ```
@@ -224,6 +224,8 @@ Adaptations are made by AI. The checks keep the plot and characters intact, but 
 
 ## License
 
-Not yet licensed: all rights reserved. Choose a license before making the repository public.
+[MIT](LICENSE) © 2026 Greg Brunk.
+
+Third-party content keeps its own terms. *The Wonderful Wizard of Oz* (L. Frank Baum, 1900) and W. W. Denslow's illustrations, used as sample text, test fixtures and style references, are in the public domain. Featherbound doesn't include anyone else's books, and you need your own right to any book you import.
 
 <p align="center"><sub>Made with care by Greg Brunk and Tuft, the puffball bird in a too-big wizard hat.</sub></p>

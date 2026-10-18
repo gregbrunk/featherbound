@@ -1,6 +1,6 @@
 # Illustration bake-off: results
 
-Run on 17 Oct 2026 through Vercel AI Gateway. Open `index.html` to see the side-by-side gallery (models as rows, tests as columns, notes and scores per model).
+Run on 17 Oct 2026 through Vercel AI Gateway. Run `node build.mjs` to build `index.html`, a side-by-side gallery (models as rows, tests as columns, notes and scores per model). Pictures of in-copyright characters from the likeness probes aren't kept in the repository; the probe outcomes are recorded below.
 
 ## Recommendation
 

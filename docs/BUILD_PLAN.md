@@ -109,7 +109,7 @@ Each phase ends with a working, deployed app and a clear exit check. Sizes are r
 **Goal:** Greg can sign in on any device and set up his own AI keys; anyone else gets their own empty library.
 
 - **Better Auth** with Google as the only sign-in method. `proxy.ts` sends anyone not signed in to sign-in. A sign-up hook refuses emails not on the allow list, and `requireAccount()` re-checks the list on every request, sending anyone removed to the "This library is private" page.
-- **Allow list and admin:** seed `parent@example.com` as admin, and build **Settings → Sign-in access** (add and remove emails).
+- **Allow list and admin:** seed the admin's email (`ADMIN_EMAIL`), and build **Settings → Sign-in access** (add and remove emails).
 - **Account bootstrap** on first sign-in, plus the **first-visit welcome**: add your key, then add your first book.
 - **Settings → AI models & keys:**
   - Encrypted key storage, with a live validity check on save (one cheap call per provider).
