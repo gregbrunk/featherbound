@@ -12,9 +12,10 @@ import { CATEGORIES, LEVEL_LABEL, bandFor, editionSettingsSchema, gradeLevelFor 
 import { densityLabel, estimateAnalysis, fmtMinutes, money, type BookSize } from '@/lib/estimate';
 import { bookTarget, getBook, getProgress, getSeries, listSections, listSeries, type BookRow, type SectionRow } from '@/lib/library';
 import { textModel } from '@/lib/models';
+import { listVersions, type VersionRow } from '@/lib/runs';
 import { requireAccount } from '@/lib/session';
 import { DeleteBookButton, EditDetailsButton, ReimportButton } from './BookActions';
-import { AnalysisProgress, DeleteEditionButton, StartAnalysisButton } from './EditionParts';
+import { AnalysisProgress, DeleteEditionButton, MakeSamplesButton, StartAnalysisButton } from './EditionParts';
 
 // Reads the session on every request; see the note in (app)/layout.tsx.
 export const instant = false;
@@ -43,6 +44,7 @@ export default async function BookPage({ params, searchParams }: { params: Promi
     listEditions(userId, book.id),
     getModelChoices(userId),
   ]);
+  const versions = (await Promise.all(eds.filter((e) => e.currentVersion).map((e) => listVersions(userId, e.id)))).flat();
   const chapters = sections.filter((s) => s.include);
   const size: BookSize = { words: book.words, chapters: chapters.length };
   const coverUrl = book.coverPath ? `/api/books/${book.id}/cover?v=${encodeURIComponent(book.coverPath.split('/').pop() ?? '')}` : undefined;
@@ -135,7 +137,8 @@ export default async function BookPage({ params, searchParams }: { params: Promi
                 <Link href={`/books/${book.id}/new`} className="btn btn-primary"><Icon name="wand" size={18} /> Start the wizard</Link>
               </div>
             )}
-            {eds.map((e) => <EditionCard key={e.id} edition={e} book={book} size={size} coverUrl={coverUrl} />)}
+            {eds.map((e) => <EditionCard key={e.id} edition={e} book={book} size={size} coverUrl={coverUrl} canSample={complete && Boolean(bible)}
+              version={versions.find((v) => v.editionId === e.id && v.number === e.currentVersion)} />)}
           </>
         )}
 
@@ -182,15 +185,15 @@ function AnalysisFooter({ analysis, start }: { analysis: AnalysisRow; start: Rea
 
 const STATUS_LABEL: Record<EditionRow['status'], string> = {
   draft: 'Draft · settings saved',
-  'making-samples': 'Making samples…',
+  'making-samples': 'Writing samples…',
   'samples-ready': 'Samples ready for review',
-  running: 'Writing…',
+  running: 'Writing the whole book…',
   'paused-cap': 'Paused at the cost cap',
   ready: 'Ready',
   failed: 'Something went wrong',
 };
 
-function EditionCard({ edition: e, book, size, coverUrl }: { edition: EditionRow; book: BookRow; size: BookSize; coverUrl?: string }) {
+function EditionCard({ edition: e, book, size, coverUrl, version, canSample }: { edition: EditionRow; book: BookRow; size: BookSize; coverUrl?: string; version?: VersionRow; canSample: boolean }) {
   const parsed = editionSettingsSchema.safeParse(e.settings);
   if (!parsed.success) return null;
   const s = parsed.data;
@@ -201,15 +204,24 @@ function EditionCard({ edition: e, book, size, coverUrl }: { edition: EditionRow
         <div className="stack-sm" style={{ flex: 1, minWidth: 0 }}>
           <h3>{e.name}</h3>
           <div className="row-wrap">
-            <span className={`chip ${e.status === 'draft' ? 'chip-plain' : 'chip-gold'}`}>{STATUS_LABEL[e.status]}</span>
+            {version && <span className="badge-version">v{version.number}</span>}
+            {version && <span className="small" style={{ fontWeight: 800, color: 'var(--plum)' }}>“{version.name}”</span>}
+            {e.status !== 'ready' && <span className={`chip ${e.status === 'draft' ? 'chip-plain' : e.status === 'failed' || e.status === 'paused-cap' ? 'chip-ruby' : 'chip-gold'}`}>{STATUS_LABEL[e.status]}</span>}
             {e.estimate && <span className="small muted">About {money(e.estimate.total)} · cap {money(Number(e.costCap))}</span>}
             <span className="small faint">Made {fmtDay(e.createdAt)}</span>
           </div>
         </div>
         <div className="edition-primary">
-          {e.status === 'draft' && (
-            <span className="small muted" style={{ maxWidth: 220, textAlign: 'right' }}>Sample chapters arrive in the next update.</span>
+          {e.status === 'draft' && <MakeSamplesButton editionId={e.id} cost={money(e.estimate?.samples ?? 0.5)} disabled={!canSample} />}
+          {(e.status === 'making-samples' || e.status === 'samples-ready') && (
+            <Link href={`/editions/${e.id}/samples`} className={`btn ${e.status === 'samples-ready' ? 'btn-gold' : 'btn-secondary'}`}>
+              <Icon name={e.status === 'samples-ready' ? 'eye' : 'clock'} size={18} /> {e.status === 'samples-ready' ? 'Review samples' : 'Writing samples…'}
+            </Link>
           )}
+          {(e.status === 'running' || e.status === 'paused-cap' || e.status === 'failed') && (
+            <Link href={`/editions/${e.id}/progress`} className="btn btn-secondary"><Icon name="clock" size={18} /> {e.status === 'failed' ? 'See what happened' : 'See progress'}</Link>
+          )}
+          {e.status === 'ready' && <Link href={`/read/edition/${e.id}`} className="btn btn-primary"><Icon name="book" size={18} /> Read</Link>}
         </div>
       </header>
 

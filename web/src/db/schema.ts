@@ -19,6 +19,7 @@ export const accountSettings = pgTable('account_settings', {
   handoffPinHash: text('handoff_pin_hash'),
   welcomedAt: timestamp('welcomed_at', { withTimezone: true }),
   libraryPrefs: jsonb('library_prefs'),
+  monthlyBudget: numeric('monthly_budget', { precision: 10, scale: 2 }),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -248,8 +249,96 @@ export const editions = pgTable(
     estimate: jsonb('estimate').$type<{ total: number; samples: number; minutes: number }>(),
     sampleGuidance: jsonb('sample_guidance').$type<string[]>().notNull().default([]),
     currentVersion: text('current_version'),
+    /** Shown on the library until the parent opens the edition. */
+    notice: text('notice').$type<'samples-ready' | 'paused-cap' | 'ready' | 'failed'>(),
+    noticeAt: timestamp('notice_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('editions_book_idx').on(t.userId, t.bookId)],
+);
+
+// ── Adaptation ─────────────────────────────────────────────────────────────────────
+
+export type SampleComment = { sectionId: string; quote: string; text: string };
+export type RunStatus = 'running' | 'paused-cap' | 'ready' | 'failed' | 'stopped';
+
+/** One background run on an edition: a round of samples, or the full book. */
+export const editionRuns = pgTable(
+  'edition_runs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    editionId: uuid('edition_id').notNull().references(() => editions.id, { onDelete: 'cascade' }),
+    kind: text('kind').$type<'samples' | 'full'>().notNull(),
+    round: integer('round').notNull().default(1),
+    status: text('status').$type<RunStatus>().notNull().default('running'),
+    sectionIds: jsonb('section_ids').$type<string[]>().notNull(),
+    chaptersDone: integer('chapters_done').notNull().default(0),
+    estimateUsd: numeric('estimate_usd', { precision: 10, scale: 4 }).notNull().default('0'),
+    capUsd: numeric('cap_usd', { precision: 10, scale: 2 }).notNull(),
+    spentUsd: numeric('spent_usd', { precision: 12, scale: 6 }).notNull().default('0'),
+    /** Feedback the parent left on this round of samples. */
+    comments: jsonb('comments').$type<SampleComment[]>().notNull().default([]),
+    overall: text('overall').notNull().default(''),
+    stage: text('stage'),
+    /** Set while paused at the cost cap: the workflow hook that resumes it. */
+    hookToken: text('hook_token'),
+    error: text('error'),
+    workflowRunId: text('workflow_run_id'),
+    startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+  },
+  (t) => [index('edition_runs_edition_idx').on(t.editionId, t.startedAt)],
+);
+
+export type ChangeNote = { category: string; level: 'Soften' | 'Remove' | 'Reading level'; note: string };
+
+/** One adapted chapter. Chapters are never edited in place; versions point at them. */
+export const editionChapters = pgTable(
+  'edition_chapters',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    editionId: uuid('edition_id').notNull().references(() => editions.id, { onDelete: 'cascade' }),
+    runId: uuid('run_id').notNull().references(() => editionRuns.id, { onDelete: 'cascade' }),
+    // Kept when the book is re-imported: an adapted chapter carries its own text and title.
+    sectionId: uuid('section_id').references(() => bookSections.id, { onDelete: 'set null' }),
+    position: integer('position').notNull(),
+    title: text('title').notNull(),
+    kidTitle: text('kid_title'),
+    recap: text('recap'),
+    textPath: text('text_path').notNull(),
+    words: integer('words').notNull(),
+    originalWords: integer('original_words').notNull(),
+    changeNotes: jsonb('change_notes').$type<ChangeNote[]>().notNull().default([]),
+    summary: text('summary').notNull().default(''),
+    names: jsonb('names').$type<string[]>().notNull().default([]),
+    /** Set when the consistency check rewrote this chapter. */
+    fixNote: text('fix_note'),
+    costUsd: numeric('cost_usd', { precision: 12, scale: 6 }).notNull().default('0'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('edition_chapters_run_idx').on(t.runId, t.position)],
+);
+
+/** A published state of an edition: which adapted chapter to show for each section. */
+export const editionVersions = pgTable(
+  'edition_versions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    editionId: uuid('edition_id').notNull().references(() => editions.id, { onDelete: 'cascade' }),
+    number: text('number').notNull(),
+    name: text('name').notNull(),
+    description: text('description').notNull(),
+    level: text('level').$type<'initial' | 'major' | 'minor' | 'patch'>().notNull(),
+    guidance: text('guidance').notNull().default(''),
+    /** sectionId → edition_chapters.id, in reading order. */
+    manifest: jsonb('manifest').$type<{ sectionId: string; chapterId: string }[]>().notNull(),
+    runId: uuid('run_id').references(() => editionRuns.id, { onDelete: 'set null' }),
+    costUsd: numeric('cost_usd', { precision: 12, scale: 6 }).notNull().default('0'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('edition_versions_edition_idx').on(t.editionId, t.createdAt)],
 );

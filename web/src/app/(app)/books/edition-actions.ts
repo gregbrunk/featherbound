@@ -3,15 +3,18 @@
 import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { start } from 'workflow/api';
+import { resumeHook, start } from 'workflow/api';
 import { getDb } from '@/db';
-import { bookAnalyses, editions } from '@/db/schema';
+import { bookAnalyses, editionRuns, editions, type SampleComment } from '@/db/schema';
+import { guidanceFrom } from '@/lib/adapt';
 import { NoKeyError, getModelChoices, getTextModel } from '@/lib/ai';
-import { getLatestAnalysis } from '@/lib/analysis';
+import { getEdition, getLatestAnalysis, getReadyAnalysis, getStoryBible, hardestSectionId, listSectionAnalyses } from '@/lib/analysis';
 import { editionName, editionSettingsSchema, type EditionSettings } from '@/lib/editions';
-import { estimateEdition } from '@/lib/estimate';
-import { getBook } from '@/lib/library';
+import { estimateEdition, estimateSamples } from '@/lib/estimate';
+import { getBook, listSections } from '@/lib/library';
+import { getRun, latestRun } from '@/lib/runs';
 import { requireAccount } from '@/lib/session';
+import { adaptEdition, type CapDecision } from '@/workflows/adapt-edition';
 import { analyzeBook } from '@/workflows/analyze-book';
 
 /** Start reading the book for its Content Report and Story Bible. The parent has seen the estimate. */
@@ -40,8 +43,8 @@ export async function startAnalysis(bookId: string): Promise<{ ok: boolean; mess
   return { ok: true };
 }
 
-/** Save the wizard's settings as a draft edition. Samples and the full run come in later phases. */
-export async function saveDraftEdition(bookId: string, input: { settings: EditionSettings; costCap: number; editionId?: string }) {
+/** Save the wizard's settings as a draft edition, and optionally start its sample chapters. */
+export async function saveDraftEdition(bookId: string, input: { settings: EditionSettings; costCap: number; editionId?: string; makeSamples?: boolean }) {
   const { userId } = await requireAccount();
   const book = await getBook(userId, bookId);
   if (!book) throw new Error('Book not found');
@@ -58,16 +61,160 @@ export async function saveDraftEdition(bookId: string, input: { settings: Editio
     updatedAt: new Date(),
   };
 
-  if (input.editionId) {
+  let editionId = input.editionId;
+  if (editionId) {
     await getDb()
       .update(editions)
       .set(values)
-      .where(and(eq(editions.userId, userId), eq(editions.id, input.editionId), eq(editions.status, 'draft')));
+      .where(and(eq(editions.userId, userId), eq(editions.id, editionId), eq(editions.status, 'draft')));
   } else {
-    await getDb().insert(editions).values({ userId, bookId, ...values });
+    const [row] = await getDb().insert(editions).values({ userId, bookId, ...values }).returning({ id: editions.id });
+    editionId = row.id;
   }
   revalidatePath(`/books/${bookId}`);
+  if (input.makeSamples) {
+    const r = await startSamples(editionId);
+    if (!r.ok) throw new Error(r.message);
+    redirect(`/editions/${editionId}/samples`);
+  }
   redirect(`/books/${bookId}?tab=editions`);
+}
+
+type Result = { ok: true } | { ok: false; message: string };
+
+async function ready(userId: string, bookId: string): Promise<Result> {
+  const [bible, analysis] = await Promise.all([getStoryBible(userId, bookId), getReadyAnalysis(userId, bookId)]);
+  if (!bible || !analysis) return { ok: false, message: 'I need to read the book through first. Start that from the book’s page.' };
+  try {
+    await getTextModel(userId);
+  } catch (e) {
+    if (e instanceof NoKeyError) return { ok: false, message: e.message };
+    throw e;
+  }
+  return { ok: true };
+}
+
+/** Write a round of sample chapters: chapter 1 and the most intense chapter, unless others are picked. */
+export async function startSamples(editionId: string, pick?: string[]): Promise<Result> {
+  const { userId } = await requireAccount();
+  const ed = await getEdition(userId, editionId);
+  if (!ed) return { ok: false, message: 'Edition not found.' };
+  const book = await getBook(userId, ed.bookId);
+  if (!book) return { ok: false, message: 'Book not found.' };
+  const check = await ready(userId, ed.bookId);
+  if (!check.ok) return check;
+  const running = await latestRun(userId, editionId);
+  if (running?.status === 'running') return { ok: true };
+
+  const chapters = (await listSections(userId, ed.bookId)).filter((s) => s.include);
+  let sectionIds: string[];
+  if (pick?.length) {
+    sectionIds = chapters.filter((c) => pick.includes(c.id)).slice(0, 3).map((c) => c.id);
+  } else {
+    const analysis = await getReadyAnalysis(userId, ed.bookId);
+    const hardest = analysis ? hardestSectionId(await listSectionAnalyses(userId, analysis.id)) : null;
+    sectionIds = [...new Set([chapters[0]?.id, hardest].filter((x): x is string => Boolean(x)))];
+  }
+  if (!sectionIds.length) return { ok: false, message: 'This book has no chapters to sample.' };
+
+  const words = chapters.filter((c) => sectionIds.includes(c.id)).reduce((n, c) => n + c.words, 0);
+  const estimate = estimateSamples({ words: book.words, chapters: chapters.length }, words, await getModelChoices(userId), sectionIds.length);
+  const round = running?.kind === 'samples' ? running.round + 1 : 1;
+  const [run] = await getDb()
+    .insert(editionRuns)
+    .values({ userId, editionId, kind: 'samples', round, sectionIds, estimateUsd: estimate.toFixed(4), capUsd: Math.max(1, Math.ceil(estimate * 3)).toFixed(2) })
+    .returning({ id: editionRuns.id });
+  await getDb().update(editions).set({ status: 'making-samples', notice: null }).where(eq(editions.id, editionId));
+  const wf = await start(adaptEdition, [userId, editionId, run.id, null]);
+  await getDb().update(editionRuns).set({ workflowRunId: wf.runId }).where(eq(editionRuns.id, run.id));
+  revalidatePath(`/books/${ed.bookId}`);
+  return { ok: true };
+}
+
+export type Feedback = { comments: SampleComment[]; overall: string };
+
+/** Keep this round's notes, both on the run (for the record) and on the edition (for every later prompt). */
+async function keepFeedback(userId: string, runId: string, editionId: string, fb: Feedback) {
+  const run = await getRun(userId, runId);
+  const ed = await getEdition(userId, editionId);
+  if (!run || !ed || run.editionId !== editionId) throw new Error('Samples not found');
+  const sections = await listSections(userId, ed.bookId);
+  const titles = new Map(sections.map((s) => [s.id, s.title]));
+  const comments = fb.comments.slice(0, 50).map((c) => ({ sectionId: c.sectionId, quote: c.quote.slice(0, 300), text: c.text.slice(0, 1000) }));
+  const overall = fb.overall.slice(0, 2000);
+  const lines = guidanceFrom(comments.map((c) => ({ ...c, chapter: titles.get(c.sectionId) ?? 'a chapter' })), overall);
+  await getDb().update(editionRuns).set({ comments, overall }).where(eq(editionRuns.id, runId));
+  if (lines.length) await getDb().update(editions).set({ sampleGuidance: [...ed.sampleGuidance, ...lines] }).where(eq(editions.id, editionId));
+  return { run, ed, added: lines.length };
+}
+
+export async function rewriteSamples(editionId: string, runId: string, fb: Feedback): Promise<Result> {
+  const { userId } = await requireAccount();
+  const { run } = await keepFeedback(userId, runId, editionId, fb);
+  return startSamples(editionId, run.sectionIds);
+}
+
+/** "Looks great: write the whole book." Unchanged samples are reused instead of written again. */
+export async function approveSamples(editionId: string, runId: string, fb: Feedback, capUsd: number): Promise<Result> {
+  const { userId } = await requireAccount();
+  const { ed, added } = await keepFeedback(userId, runId, editionId, fb);
+  const book = await getBook(userId, ed.bookId);
+  if (!book) return { ok: false, message: 'Book not found.' };
+  const check = await ready(userId, ed.bookId);
+  if (!check.ok) return check;
+  const cap = Math.round(Number(capUsd) * 100) / 100;
+  if (!Number.isFinite(cap) || cap < 0.5 || cap > 10_000) return { ok: false, message: 'Pick a cost cap between $0.50 and $10,000.' };
+
+  const settings = editionSettingsSchema.parse(ed.settings);
+  const chapters = (await listSections(userId, ed.bookId)).filter((s) => s.include);
+  const est = estimateEdition({ words: book.words, chapters: chapters.length }, { ...settings, picture: { ...settings.picture, on: false } }, await getModelChoices(userId));
+  const [run] = await getDb()
+    .insert(editionRuns)
+    .values({ userId, editionId, kind: 'full', sectionIds: chapters.map((c) => c.id), estimateUsd: est.total.toFixed(4), capUsd: cap.toFixed(2) })
+    .returning({ id: editionRuns.id });
+  await getDb().update(editions).set({ status: 'running', costCap: cap.toFixed(2), notice: null }).where(eq(editions.id, editionId));
+  const wf = await start(adaptEdition, [userId, editionId, run.id, added ? null : runId]);
+  await getDb().update(editionRuns).set({ workflowRunId: wf.runId }).where(eq(editionRuns.id, run.id));
+  redirect(`/editions/${editionId}/progress`);
+}
+
+/** Answer a run paused at its cost cap. */
+export async function answerCap(runId: string, decision: CapDecision): Promise<Result> {
+  const { userId } = await requireAccount();
+  const run = await getRun(userId, runId);
+  if (!run || run.status !== 'paused-cap' || !run.hookToken) return { ok: false, message: 'This run isn’t waiting on you any more.' };
+  if (decision.action === 'continue' && (!Number.isFinite(decision.cap) || decision.cap <= Number(run.spentUsd) || decision.cap > 10_000)) {
+    return { ok: false, message: 'The new cap needs to be above what’s been spent so far.' };
+  }
+  await resumeHook(run.hookToken, decision.action === 'continue' ? { action: 'continue', cap: Math.round(decision.cap * 100) / 100 } : { action: 'stop' });
+  revalidatePath(`/editions/${run.editionId}/progress`);
+  return { ok: true };
+}
+
+/** Pick a failed or stopped run back up from its last finished chapter. */
+export async function resumeRun(runId: string, capUsd?: number): Promise<Result> {
+  const { userId } = await requireAccount();
+  const run = await getRun(userId, runId);
+  if (!run || (run.status !== 'failed' && run.status !== 'stopped')) return { ok: false, message: 'This run can’t be resumed.' };
+  const ed = await getEdition(userId, run.editionId);
+  if (!ed) return { ok: false, message: 'Edition not found.' };
+  const check = await ready(userId, ed.bookId);
+  if (!check.ok) return check;
+  const set: Partial<typeof editionRuns.$inferInsert> = { status: 'running', error: null, finishedAt: null, hookToken: null };
+  if (capUsd !== undefined) {
+    if (!Number.isFinite(capUsd) || capUsd <= Number(run.spentUsd)) return { ok: false, message: 'The new cap needs to be above what’s been spent so far.' };
+    set.capUsd = capUsd.toFixed(2);
+  }
+  await getDb().update(editionRuns).set(set).where(eq(editionRuns.id, runId));
+  const wf = await start(adaptEdition, [userId, run.editionId, run.id, null]);
+  await getDb().update(editionRuns).set({ workflowRunId: wf.runId }).where(eq(editionRuns.id, runId));
+  revalidatePath(`/editions/${run.editionId}/progress`);
+  return { ok: true };
+}
+
+export async function clearNotice(editionId: string) {
+  const { userId } = await requireAccount();
+  await getDb().update(editions).set({ notice: null }).where(and(eq(editions.userId, userId), eq(editions.id, editionId)));
 }
 
 export async function deleteEdition(bookId: string, editionId: string) {

@@ -570,3 +570,19 @@ blockquote { margin: 0; font-family: var(--font-read); font-style: italic; color
 .chapter-notes summary .mono { width: 18px; text-align: right; flex: none; }
 .chapter-notes-flags { margin-left: auto; display: flex; gap: 4px; flex: none; }
 .bible-place-list { display: flex; flex-direction: column; gap: 6px; margin: 0; padding-left: 18px; }
+.sample-extras { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; margin-bottom: 14px; border-radius: var(--r-md); background: #f8f2ff; }
+.compare-col .book-h { font-family: var(--font-display); font-size: 1.1em; margin: 0 0 0.8em; }
+.compare-col .book-quote { margin: 0 0 0.9em 1em; font-style: italic; }
+.compare-col .scene-break { text-align: center; margin: 0.6em 0 1em; color: var(--ink-faint); }
+.chapter-subtitle { margin: -4px 0 6px; font-size: 0.8em; opacity: 0.65; font-style: italic; }
+.book-quote.recap { font-style: normal; border-left: 3px solid var(--gold); padding-left: 0.9em; opacity: 0.9; }
+.notices { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.notice-row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; flex-wrap: wrap; }
+.notice-row p { margin: 0; font-weight: 700; }
+.sparkles { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.sparkles i {
+  position: absolute; width: 10px; height: 10px;
+  background: radial-gradient(circle, var(--gold) 0 30%, transparent 32%);
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  animation: twinkle 2.4s ease-in-out infinite;
+}

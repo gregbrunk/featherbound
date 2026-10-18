@@ -46,7 +46,7 @@ const STATUS: Record<LibraryBook['status'], string> = {
 
 type Entry = { kind: 'series'; series: LibrarySeries; books: LibraryBook[] } | { kind: 'book'; book: LibraryBook };
 
-export default function LibraryView({ books, series, initialPrefs }: { books: LibraryBook[]; series: LibrarySeries[]; initialPrefs: Partial<Prefs> | null }) {
+export default function LibraryView({ books, series, initialPrefs, notices }: { books: LibraryBook[]; series: LibrarySeries[]; initialPrefs: Partial<Prefs> | null; notices?: ReactNode }) {
   const [prefs, setPrefsState] = useState<Prefs>({ ...DEFAULT_PREFS, ...(initialPrefs ?? {}) });
   const [q, setQ] = useState('');
   const [panel, setPanel] = useState<null | 'view' | 'filter'>(null);
@@ -148,6 +148,7 @@ export default function LibraryView({ books, series, initialPrefs }: { books: Li
 
   return (
     <main className="page">
+      {notices}
       <section className="lib-hero">
         <div className="stack-sm" style={{ flex: 1, minWidth: 0 }}>
           <h1>My Library</h1>

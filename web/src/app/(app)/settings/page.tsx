@@ -9,6 +9,8 @@ import { getModelChoices } from '@/lib/ai';
 import { listKeys } from '@/lib/keys';
 import { IMAGE_MODELS, PROVIDERS, TEXT_MODELS, keyFor } from '@/lib/models';
 import { requireAccount } from '@/lib/session';
+import { getUsage } from '@/lib/usage';
+import UsageView from './Usage';
 import { AddEmailForm, KeyRow, ModelsForm, PinForm, RemoveEmailButton } from './forms';
 
 
@@ -17,12 +19,13 @@ export const instant = false;
 
 export const metadata = { title: 'Settings · Featherbound' };
 
-type Tab = 'models' | 'access' | 'handoff' | 'about';
+type Tab = 'usage' | 'models' | 'access' | 'handoff' | 'about';
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const account = await requireAccount();
   const { tab: raw } = await searchParams;
   const tabs: { id: Tab; label: string; icon: string }[] = [
+    { id: 'usage', label: 'Usage & costs', icon: 'chart' },
     { id: 'models', label: 'AI models & keys', icon: 'key' },
     ...(account.isAdmin ? [{ id: 'access' as Tab, label: 'Sign-in access', icon: 'users' }] : []),
     { id: 'handoff', label: 'Hand-off PIN', icon: 'lock' },
@@ -42,6 +45,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           ))}
         </nav>
         <section style={{ minWidth: 0 }}>
+          {tab === 'usage' && <UsageTab userId={account.userId} />}
           {tab === 'models' && <ModelsTab userId={account.userId} />}
           {tab === 'access' && account.isAdmin && <AccessTab adminEmail={account.email} />}
           {tab === 'handoff' && <HandoffTab userId={account.userId} />}
@@ -50,6 +54,11 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       </div>
     </main>
   );
+}
+
+async function UsageTab({ userId }: { userId: string }) {
+  const [usage, settings] = await Promise.all([getUsage(userId), getAccountSettings(userId)]);
+  return <UsageView usage={usage} budget={settings?.monthlyBudget ? Number(settings.monthlyBudget) : null} />;
 }
 
 async function ModelsTab({ userId }: { userId: string }) {
