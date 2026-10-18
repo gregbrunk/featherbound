@@ -1,6 +1,6 @@
 # Featherbound — Phased Development Plan
 
-**Status:** Draft v0.1 · **Last updated:** 2026-10-17
+**Status:** v1.0, approved · **Last updated:** 2026-10-17
 **Inputs:** [PRD v1.0](PRD.md) · prototype at git tag `prototype-v1` · [illustration bake-off results](../spikes/illustration-bakeoff/RESULTS.md)
 
 This plan turns the PRD and the locked prototype into a production app, in phases that each end with something real you can use. P0 features come first, P1 next, P2 last, matching the PRD's priorities.
@@ -264,8 +264,8 @@ Phase 0 ─► Phase 1 ─► Phase 2 ─► Phase 3 ─► Phase 4 ─► Phase
   - Roughly $2–$15 per text edition, depending on book length.
   - About $0.05–$0.08 per picture.
 
-## 6. Decisions for Greg before Phase 0
-1. **Repo layout:** keep `prototype/` and add the real app in `web/` (recommended), or replace the prototype?
-2. **Vercel team and plan:** which Vercel account hosts it, Hobby or Pro?
-3. **Domain:** use the default `*.vercel.app` address for now, or a custom domain?
-4. **Mascot name:** confirm "Tuft" (PRD Q1) before it appears in production copy.
+## 6. Decisions (answered 2026-10-17)
+1. **Repo layout:** the real app goes in `web/`; `prototype/` stays as the design reference.
+2. **Hosting:** Greg's existing Vercel **Hobby** plan. We move to Pro only if limits get in the way.
+3. **Domain:** the default `*.vercel.app` address for now.
+4. **Mascot name:** **Tuft** is confirmed.
