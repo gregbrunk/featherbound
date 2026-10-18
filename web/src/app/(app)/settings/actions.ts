@@ -8,6 +8,7 @@ import { saveModelChoices, setHandoffPin } from '@/lib/account';
 import { normalizeEmail } from '@/lib/allowlist';
 import { deleteKey, saveKey, validateKey } from '@/lib/keys';
 import { isImageModel, isTextModel, PROVIDERS } from '@/lib/models';
+import { sendTestEmail } from '@/lib/notify';
 import { requireAccount, requireAdmin } from '@/lib/session';
 
 export type FormState = { ok?: boolean; message?: string } | null;
@@ -106,4 +107,10 @@ export async function setEmailNoticesAction(on: boolean): Promise<FormState> {
     .onConflictDoUpdate({ target: accountSettings.userId, set: { emailNotices: on, updatedAt: new Date() } });
   revalidatePath('/settings');
   return { ok: true };
+}
+
+export async function sendTestEmailAction(): Promise<FormState> {
+  const { email } = await requireAccount();
+  const r = await sendTestEmail(email);
+  return r.sent ? { ok: true, message: `Sent to ${email}. Check your inbox (and spam, just this once).` } : { ok: false, message: r.reason };
 }
