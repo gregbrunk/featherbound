@@ -93,9 +93,9 @@ export function ModelsForm({ text, images, reachable }: { text: string; images: 
           const m = imageModel(imgs[i]);
           return (
             <div key={label} className="model-slot">
-              <div className="row" style={{ flexWrap: 'wrap' }}>
-                <strong style={{ width: 80 }}>{label}</strong>
-                <Select style={{ flex: 1, minWidth: 220 }} name={`image${i}`} value={imgs[i]} label={`${label} picture model`}
+              <span className="slot-name" id={`slot-${i}`}>{label}</span>
+              <div style={{ minWidth: 0 }}>
+                <Select labelledBy={`slot-${i}`} name={`image${i}`} value={imgs[i]}
                   onChange={(v) => setImgs((cur) => cur.map((x, j) => (j === i ? v : x)) as [string, string, string])}
                   options={IMAGE_MODELS.map((x) => ({
                     value: x.id,
@@ -103,15 +103,15 @@ export function ModelsForm({ text, images, reachable }: { text: string; images: 
                     hint: `~$${x.perImage.toFixed(2)} a picture · ${STRICT_LABEL[x.strictness].toLowerCase()}`,
                     badge: !reachable[x.id] ? <span className="chip chip-plain">Needs a key</span> : undefined,
                   }))} />
+                <div className="model-meta">
+                  <span className="chip chip-plain">~${m.perImage.toFixed(2)} / picture</span>
+                  <span className="chip chip-plain">~{m.seconds}s each</span>
+                  <span className="chip chip-plain">Book-art match {m.bookArt}/5</span>
+                  <span className="chip chip-plain">Consistency {m.consistency}/5</span>
+                  <span className={`chip ${m.strictness === 'loose' ? 'chip-gold' : 'chip-plain'}`}>{STRICT_LABEL[m.strictness]}</span>
+                </div>
+                <p className="small muted" style={{ marginTop: 6 }}>{m.note}</p>
               </div>
-              <div className="row-wrap" style={{ marginLeft: 92 }}>
-                <span className="chip chip-plain">~${m.perImage.toFixed(2)} / picture</span>
-                <span className="chip chip-plain">~{m.seconds}s each</span>
-                <span className="chip chip-plain">Book-art match {m.bookArt}/5</span>
-                <span className="chip chip-plain">Consistency {m.consistency}/5</span>
-                <span className={`chip ${m.strictness === 'loose' ? 'chip-gold' : 'chip-plain'}`}>{STRICT_LABEL[m.strictness]}</span>
-              </div>
-              <p className="tiny muted" style={{ marginLeft: 92 }}>{m.note}</p>
             </div>
           );
         })}
