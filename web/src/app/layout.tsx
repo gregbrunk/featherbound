@@ -11,6 +11,8 @@ const atkinson = Atkinson_Hyperlegible({ subsets: ['latin'], weight: ['400', '70
 export const metadata: Metadata = {
   title: 'Featherbound',
   description: 'A private library of softer editions of the books we love.',
+  // Added to a home screen, it opens full screen under Tuft's icon (apple-icon.png, manifest.ts).
+  appleWebApp: { capable: true, title: 'Featherbound', statusBarStyle: 'default' },
 };
 
 export const viewport: Viewport = {
