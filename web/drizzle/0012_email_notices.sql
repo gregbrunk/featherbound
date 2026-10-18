@@ -1,0 +1,1 @@
+ALTER TABLE "account_settings" ADD COLUMN "email_notices" boolean DEFAULT true NOT NULL;

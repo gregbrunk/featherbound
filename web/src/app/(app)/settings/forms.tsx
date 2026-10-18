@@ -5,7 +5,7 @@ import { Switch } from '@/components/ui';
 import Icon from '@/components/Icon';
 import Select from '@/components/Select';
 import { IMAGE_MODELS, TEXT_MODELS, imageModel, textModel, type Strictness } from '@/lib/models';
-import { addEmailAction, removeEmailAction, removeKeyAction, saveKeyAction, saveModelsAction, setPinAction, setPreferDirectKeysAction, type FormState } from './actions';
+import { addEmailAction, removeEmailAction, removeKeyAction, saveKeyAction, saveModelsAction, setEmailNoticesAction, setPinAction, setPreferDirectKeysAction, type FormState } from './actions';
 
 function Status({ state }: { state: FormState }) {
   if (!state?.message) return null;
@@ -187,6 +187,23 @@ export function PreferDirectForm({ prefer, billing }: { prefer: boolean; billing
           {billing.map((b) => <li key={b.model}><strong>{b.model}</strong> bills to {b.key}{pending ? '…' : ''}</li>)}
         </ul>
       )}
+    </div>
+  );
+}
+
+export function EmailNoticesForm({ on: initial, email, ready }: { on: boolean; email: string; ready: boolean }) {
+  const [on, setOn] = useState(initial);
+  const [pending, start] = useTransition();
+  return (
+    <div className="card stack-sm">
+      <div className="toggle-row">
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <strong>Email me about long runs</strong>
+          <div className="small muted">When sample chapters are ready, an edition is finished, or a run pauses at its cost cap or gets stuck. Sent to {email}.</div>
+        </div>
+        <Switch checked={on} label="Email me about long runs" onChange={(v) => { setOn(v); start(async () => { await setEmailNoticesAction(v); }); }} />
+      </div>
+      {!ready && <p className="tiny muted">Email isn’t set up on this server yet, so nothing will be sent.{pending ? ' Saving…' : ''}</p>}
     </div>
   );
 }

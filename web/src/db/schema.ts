@@ -20,6 +20,8 @@ export const accountSettings = pgTable('account_settings', {
   welcomedAt: timestamp('welcomed_at', { withTimezone: true }),
   libraryPrefs: jsonb('library_prefs'),
   monthlyBudget: numeric('monthly_budget', { precision: 10, scale: 2 }),
+  /** Email when samples are ready, an edition is done, or a run pauses or fails. */
+  emailNotices: boolean('email_notices').notNull().default(true),
   /** Use a provider's own key (e.g. Anthropic) for its models instead of the AI Gateway key. */
   preferDirectKeys: boolean('prefer_direct_keys').notNull().default(true),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
