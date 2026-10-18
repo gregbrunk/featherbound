@@ -14,7 +14,7 @@ This plan turns the PRD and the locked prototype into a production app, in phase
 | 0 · Foundations | Done (2026-10-17). Live at featherbound.ink; adaptation spike passed. |
 | 1 · Accounts, access & keys | Done (2026-10-17). Better Auth with Google, allow list, encrypted keys, model settings, themed dropdowns. |
 | 2 · Library & import | Done (2026-10-17). EPUB/PDF import job, review screen, library, book and series pages, reader with synced progress. Re-import added after nested-part chapters were fixed. Exporting a rebuilt EPUB moves to Phase 5, alongside edition export; originals download as the uploaded file. |
-| 3 · Analysis, wizard & estimates | Built (2026-10-17); awaiting a check on real books in production. Analysis job (per-chapter ratings in batches of 5, then the Story Bible) starts only after the parent sees its estimate. Book page tabs, the 7-step wizard, estimates and a cost cap are in. The wizard saves a draft edition; "Make sample chapters" arrives with Phase 4. Oz: estimate $0.94, actual $0.84, about 2 minutes. |
+| 3 · Analysis, wizard & estimates | Done (2026-10-17). Content reports checked on real books in production. Analysis job (per-chapter ratings in batches of 5, then the Story Bible) starts only after the parent sees its estimate. Book page tabs, the 7-step wizard, estimates and a cost cap are in. The wizard saves a draft edition; "Make sample chapters" arrives with Phase 4. Oz: estimate $0.94, actual $0.84, about 2 minutes. |
 | 4 · Adaptation & samples | Next |
 
 ## 1. Architecture at a glance
