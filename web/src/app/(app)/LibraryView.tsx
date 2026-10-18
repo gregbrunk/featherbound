@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import BookCover from '@/components/BookCover';
 import Icon from '@/components/Icon';
 import Select from '@/components/Select';
@@ -27,6 +27,29 @@ export type LibraryBook = {
 
 export type LibrarySeries = { id: string; name: string; author: string | null };
 
+/** A book or edition the reader is partway through. */
+export type ResumeItem = {
+  key: string;
+  bookId: string;
+  href: string;
+  edition: string;
+  percent: number;
+  chapter: { title: string; number: number | null; total: number } | null;
+  lastRead: string;
+};
+
+/** An edition being adapted right now. */
+export type WorkItem = {
+  key: string;
+  bookId: string;
+  href: string;
+  edition: string;
+  kind: 'samples' | 'full' | 'refine';
+  done: number;
+  total: number;
+  paused: boolean;
+};
+
 type Prefs = {
   view: 'shelf' | 'list';
   groupBy: 'series' | 'author' | 'genre' | 'none';
@@ -46,7 +69,7 @@ const STATUS: Record<LibraryBook['status'], string> = {
 
 type Entry = { kind: 'series'; series: LibrarySeries; books: LibraryBook[] } | { kind: 'book'; book: LibraryBook };
 
-export default function LibraryView({ books, series, initialPrefs, notices }: { books: LibraryBook[]; series: LibrarySeries[]; initialPrefs: Partial<Prefs> | null; notices?: ReactNode }) {
+export default function LibraryView({ books, series, resume = [], working = [], initialPrefs, notices }: { books: LibraryBook[]; series: LibrarySeries[]; resume?: ResumeItem[]; working?: WorkItem[]; initialPrefs: Partial<Prefs> | null; notices?: ReactNode }) {
   const [prefs, setPrefsState] = useState<Prefs>({ ...DEFAULT_PREFS, ...(initialPrefs ?? {}) });
   const [q, setQ] = useState('');
   const [panel, setPanel] = useState<null | 'view' | 'filter'>(null);
@@ -62,6 +85,7 @@ export default function LibraryView({ books, series, initialPrefs, notices }: { 
   };
 
   const seriesById = useMemo(() => new Map(series.map((s) => [s.id, s])), [series]);
+  const booksById = useMemo(() => new Map(books.map((b) => [b.id, b])), [books]);
   const ready = books.filter((b) => b.status === 'ready');
   const attention = books.filter((b) => b.status !== 'ready');
   const allGenres = [...new Set(ready.flatMap((b) => b.genres))].sort();
@@ -124,7 +148,8 @@ export default function LibraryView({ books, series, initialPrefs, notices }: { 
   }
   shelves = shelves.filter((s) => s.entries.length);
 
-  const keepReading = ready.filter((b) => b.lastReadAt && (b.percent ?? 0) < 100).sort((a, b) => (b.lastReadAt ?? '').localeCompare(a.lastReadAt ?? '')).slice(0, 3);
+  const [hero, ...alsoReading] = resume.flatMap((r) => { const book = booksById.get(r.bookId); return book ? [{ ...r, book }] : []; });
+  const adapting = working.flatMap((w) => { const book = booksById.get(w.bookId); return book ? [{ ...w, book }] : []; });
 
   if (books.length === 0) {
     return (
@@ -174,22 +199,54 @@ export default function LibraryView({ books, series, initialPrefs, notices }: { 
         </section>
       )}
 
-      {keepReading.length > 0 && (
-        <section className="shelf-section">
-          <div className="shelf-head"><h2>Keep reading</h2></div>
-          <div className="continue-row">
-            {keepReading.map((b) => (
-              <Link key={b.id} href={`/read/book/${b.id}`} className="continue-card">
-                <Cover book={b} className="mini-cover" />
-                <div style={{ minWidth: 0, flex: 1 }} className="stack-sm">
-                  <div><div className="t">{b.title}</div><div className="s">Original</div></div>
-                  <div className="progress-bar gold"><i style={{ width: `${b.percent ?? 0}%` }} /></div>
-                  <div className="s">{Math.round(b.percent ?? 0)}%</div>
-                </div>
-                <span className="btn btn-primary btn-icon btn-sm" aria-hidden="true"><Icon name="play" size={16} /></span>
-              </Link>
-            ))}
-          </div>
+      {(hero || adapting.length > 0) && (
+        <section className={`now-reading ${hero && (alsoReading.length || adapting.length) ? '' : 'solo'}`} aria-label="Keep reading">
+          {hero && (
+            <Link href={hero.href} className="now-hero">
+              <Sparkle className="now-spark" style={{ right: 26, top: 22 }} size={18} />
+              <Sparkle className="now-spark" style={{ right: 64, top: 56 }} size={10} />
+              <Cover book={hero.book} className="now-cover" />
+              <div className="now-body">
+                <span className="eyebrow">Pick up where you left off</span>
+                <h2 className="clamp-2">{hero.book.title}</h2>
+                <span className="now-sub">{hero.edition}{hero.chapter ? ` · ${chapterLabel(hero.chapter)}` : ''}</span>
+                <div className="progress-bar gold"><i style={{ width: `${Math.max(2, hero.percent)}%` }} /></div>
+                <div className="now-line"><span>{Math.round(hero.percent)}% read</span><span>{hero.lastRead}</span></div>
+                <span className="btn btn-gold btn-sm now-cta"><Icon name="play" size={16} /> Continue reading</span>
+              </div>
+            </Link>
+          )}
+          {(alsoReading.length > 0 || adapting.length > 0) && (
+            <div className="now-queue">
+              <span className="eyebrow">{hero ? 'Also on the go' : 'In progress'}</span>
+              {alsoReading.map((r) => (
+                <Link key={r.key} href={r.href} className="now-row">
+                  <Cover book={r.book} className="mini-cover" />
+                  <div className="now-row-body">
+                    <span className="t ellipsis">{r.book.title}</span>
+                    <div className="progress-bar gold"><i style={{ width: `${Math.max(2, r.percent)}%` }} /></div>
+                    <span className="s"><span className="ellipsis">{r.edition}</span><span>{Math.round(r.percent)}%</span></span>
+                  </div>
+                </Link>
+              ))}
+              {adapting.map((w) => {
+                const pct = w.total ? Math.round((w.done / w.total) * 100) : 0;
+                return (
+                  <Link key={w.key} href={w.href} className="now-row">
+                    <Cover book={w.book} className="mini-cover" />
+                    <div className="now-row-body">
+                      <span className="t ellipsis">{w.book.title}</span>
+                      <div className={`progress-bar ${w.paused ? 'ruby' : 'working'}`}><i style={{ width: `${Math.max(2, pct)}%` }} /></div>
+                      <span className="s">
+                        <span className="ellipsis">{w.paused ? 'Paused at your cost cap' : `${w.kind === 'samples' ? 'Writing samples' : w.kind === 'refine' ? 'Refining' : 'Adapting'} · ${w.done} of ${w.total} chapters`}</span>
+                        <span>{pct}%</span>
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </section>
       )}
 
@@ -312,6 +369,19 @@ export default function LibraryView({ books, series, initialPrefs, notices }: { 
           </section>
         )}
     </main>
+  );
+}
+
+function chapterLabel(c: NonNullable<ResumeItem['chapter']>) {
+  if (/^(chapter|part|book)\b/i.test(c.title) || c.number === null) return c.title;
+  return `Chapter ${c.number}: ${c.title}`;
+}
+
+function Sparkle({ size, className, style }: { size: number; className?: string; style?: CSSProperties }) {
+  return (
+    <svg className={className} style={style} width={size} height={size} viewBox="-6 -6 12 12" aria-hidden="true">
+      <path d="M0-5L1.4-1.4 5 0 1.4 1.4 0 5-1.4 1.4-5 0-1.4-1.4Z" fill="currentColor" />
+    </svg>
   );
 }
 

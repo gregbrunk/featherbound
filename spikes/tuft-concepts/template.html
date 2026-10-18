@@ -1,0 +1,339 @@
+<title>Featherbound Design Review</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Nunito:wght@400;600;800&display=swap">
+<style>
+/* Layout: one reading column of review sections; option mocks sit on a parchment "app" surface so they read in context. Uses Featherbound's own tokens. */
+:root {
+  --parchment: #fbf4e4; --parchment-2: #f4e8cd; --paper: #fffdf7; --white: #ffffff;
+  --ink: #2b2140; --ink-soft: #5e5373; --ink-faint: #8d84a0;
+  --plum: #4b2e83; --plum-deep: #2e1b55; --plum-soft: #ece4f8; --lavender: #b9a5e3;
+  --gold: #d4a23a; --gold-soft: #f6e3ae; --cream: #fbf4e4;
+  --line: rgba(43, 33, 64, 0.12); --line-strong: rgba(43, 33, 64, 0.22);
+  --shadow-sm: 0 1px 2px rgba(46, 27, 85, 0.08), 0 2px 6px rgba(46, 27, 85, 0.06);
+  --shadow-md: 0 4px 10px rgba(46, 27, 85, 0.08), 0 12px 28px rgba(46, 27, 85, 0.1);
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-ui: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--parchment); color: var(--ink); font-family: var(--font-ui); font-size: 16px; line-height: 1.55;
+  background-image: radial-gradient(1200px 600px at 10% -10%, rgba(185, 165, 227, 0.28), transparent 60%), radial-gradient(900px 500px at 110% 10%, rgba(246, 227, 174, 0.55), transparent 60%);
+}
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 40px 80px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 56px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.12; color: var(--plum-deep); }
+h1 { font-size: clamp(32px, 5vw, 48px); font-weight: 800; }
+h2 { font-size: clamp(26px, 3.4vw, 34px); font-weight: 800; }
+h3 { font-size: 21px; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+.muted { color: var(--ink-soft); }
+.eyebrow { font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--plum); }
+.stack { display: flex; flex-direction: column; gap: 14px; }
+.stack-lg { display: flex; flex-direction: column; gap: 28px; }
+header.top { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+header.top .stack { flex: 1; min-width: 0; }
+code { font-size: 0.9em; background: var(--plum-soft); padding: 1px 6px; border-radius: 6px; }
+hr { border: none; border-top: 1px solid var(--line-strong); margin: 0; }
+
+/* Answer box */
+.answer { background: var(--white); border-radius: 22px; padding: 22px 24px; box-shadow: var(--shadow-sm), inset 0 0 0 1px var(--line); display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 22px; }
+.answer > div { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.answer b { color: var(--plum-deep); }
+
+/* Concept grid */
+.concepts { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.concept { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.concept img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 16px; box-shadow: var(--shadow-sm); display: block; }
+.concept figcaption { font-size: 14px; color: var(--ink-soft); }
+.concept figcaption b { color: var(--ink); }
+.sheets { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.sheets img { width: 100%; border-radius: 16px; box-shadow: var(--shadow-sm); display: block; }
+
+/* Before / after */
+.ba { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.ba-card { background: var(--paper); border-radius: 22px; box-shadow: var(--shadow-sm), inset 0 0 0 1px var(--line); padding: 18px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.ba-card svg { max-width: 100%; height: auto; }
+.ba-card .lbl { font-weight: 800; }
+.poses { display: flex; flex-wrap: wrap; gap: 4px 10px; justify-content: center; background: var(--paper); border-radius: 22px; padding: 14px; box-shadow: var(--shadow-sm), inset 0 0 0 1px var(--line); }
+.poses figure { margin: 0; display: flex; flex-direction: column; align-items: center; font-size: 12px; color: var(--ink-faint); font-weight: 700; }
+ul.changes { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+
+/* App surface for mocks */
+.option { display: flex; flex-direction: column; gap: 14px; }
+.option-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.pick { font-size: 12px; font-weight: 800; background: var(--gold-soft); color: #7a560c; padding: 2px 10px; border-radius: 999px; }
+.surface { border-radius: 26px; padding: 26px; background: var(--parchment); background-image: radial-gradient(700px 300px at 0% 0%, rgba(185, 165, 227, 0.25), transparent 60%), radial-gradient(500px 300px at 100% 0%, rgba(246, 227, 174, 0.5), transparent 60%); box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
+.surface .app-h { font-family: var(--font-display); font-weight: 800; font-size: 24px; color: var(--plum-deep); margin-bottom: 14px; }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px 22px; font-size: 15px; }
+.notes p::before { content: "+ "; font-weight: 800; color: #2f7d62; }
+.notes p.minus::before { content: "– "; color: #b23a52; }
+
+/* Book covers */
+.bk { position: relative; flex: none; border-radius: 3px 8px 8px 3px; overflow: hidden; box-shadow: 0 2px 4px rgba(46,27,85,.18), 0 8px 18px rgba(46,27,85,.16); background: linear-gradient(160deg, var(--c1), var(--c2)); color: var(--gold-soft); }
+.bk::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 7%; background: linear-gradient(90deg, rgba(0,0,0,.22), rgba(255,255,255,.08)); }
+.bk::after { content: ""; position: absolute; inset: 7% 8% 7% 14%; border: 1.5px solid rgba(246,227,174,.55); border-radius: 3px; }
+.bk img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bk span { position: absolute; inset: 16% 14% auto 20%; font-family: var(--font-display); font-weight: 800; font-size: 11px; line-height: 1.1; text-align: center; }
+.bk.photo::after { display: none; }
+.oz { --c1: #6d7a3a; --c2: #3c4620; }
+.pan { --c1: #2f7d62; --c2: #1d4b3c; }
+.garden { --c1: #b23a52; --c2: #6d1f33; }
+
+.bar { height: 6px; border-radius: 999px; background: rgba(43, 33, 64, 0.1); overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--gold-soft), var(--gold)); }
+.bar.lav i { background: linear-gradient(90deg, var(--lavender), var(--plum)); position: relative; overflow: hidden; }
+.bar.lav i::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent); animation: shimmer 1.8s infinite; }
+@keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+.num { font-variant-numeric: tabular-nums; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 999px; background: var(--plum-soft); color: var(--plum); align-self: flex-start; }
+.chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--plum); animation: pulse 1.4s infinite; }
+@keyframes pulse { 50% { opacity: .3; } }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: none; font: inherit; font-weight: 800; font-size: 14px; border-radius: 999px; padding: 9px 16px; cursor: pointer; line-height: 1; white-space: nowrap; }
+.btn svg { flex: none; display: block; }
+.btn-plum { background: linear-gradient(180deg, #6a45b0, var(--plum)); color: #fff; box-shadow: 0 2px 0 var(--plum-deep), var(--shadow-sm); }
+.btn-gold { background: linear-gradient(180deg, #f2cb6b, var(--gold)); color: var(--plum-deep); box-shadow: 0 2px 0 #9c6f12; }
+.btn-ghost { background: transparent; color: var(--plum); box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+.btn:focus-visible, a:focus-visible { outline: 3px solid var(--lavender); outline-offset: 2px; }
+
+/* Option A: bookmark cards */
+.a-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.a-card { background: var(--white); border-radius: 20px; padding: 16px; display: flex; gap: 16px; box-shadow: var(--shadow-md), inset 0 0 0 1px var(--line); transition: transform .15s; }
+.a-card:hover { transform: translateY(-2px); }
+.a-card .bk { width: 76px; height: 114px; }
+.a-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.a-title { font-family: var(--font-display); font-weight: 600; font-size: 18px; line-height: 1.2; color: var(--plum-deep); }
+.a-sub { font-size: 13px; color: var(--ink-soft); }
+.a-prog { display: flex; align-items: center; gap: 10px; margin-top: auto; }
+.a-prog .bar { flex: 1; }
+.a-prog .num { font-size: 13px; font-weight: 800; color: var(--ink-soft); }
+.a-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.a-foot .meta { font-size: 13px; color: var(--ink-faint); }
+
+/* Option B: hero + queue */
+.b-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 760px) { .b-grid { grid-template-columns: 1fr; } }
+.b-hero { position: relative; border-radius: 24px; padding: 24px; display: flex; gap: 24px; align-items: center; color: var(--cream); background: radial-gradient(400px 220px at 85% 0%, rgba(185,165,227,.35), transparent 70%), linear-gradient(140deg, #4b2e83, #2e1b55); box-shadow: var(--shadow-md); overflow: hidden; }
+.b-hero .bk { width: 112px; height: 168px; transform: rotate(-3deg); box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.b-hero .b-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.b-hero .eyebrow { color: var(--gold-soft); }
+.b-hero h3 { color: var(--cream); font-size: 26px; font-weight: 800; }
+.b-hero .sub { color: rgba(251,244,228,.75); font-size: 14px; }
+.b-hero .bar { background: rgba(255,255,255,.16); }
+.b-hero .prog-line { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; color: rgba(251,244,228,.8); }
+.b-hero .btn { align-self: flex-start; margin-top: 6px; }
+.b-hero .spark { position: absolute; color: var(--gold-soft); opacity: .5; }
+@media (max-width: 480px) { .b-hero { flex-direction: column; align-items: flex-start; } }
+.b-queue { background: var(--white); border-radius: 24px; padding: 8px; box-shadow: var(--shadow-md), inset 0 0 0 1px var(--line); display: flex; flex-direction: column; }
+.b-row { display: flex; gap: 14px; align-items: center; padding: 10px 12px; border-radius: 16px; }
+.b-row + .b-row { border-top: 1px solid var(--line); border-radius: 0 0 16px 16px; }
+.b-row:hover { background: var(--plum-soft); }
+.b-row .bk { width: 44px; height: 66px; }
+.b-row .rb { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.b-row .rt { font-weight: 800; line-height: 1.2; }
+.b-row .rs { font-size: 13px; color: var(--ink-soft); display: flex; justify-content: space-between; gap: 8px; }
+.b-qh { padding: 10px 12px 4px; }
+
+/* Option C: cover rail */
+.c-rail { display: flex; gap: 22px; overflow-x: auto; padding: 4px 4px 10px; scroll-snap-type: x mandatory; }
+.c-item { flex: none; width: 140px; display: flex; flex-direction: column; gap: 8px; scroll-snap-align: start; }
+.c-cover { position: relative; }
+.c-cover .bk { width: 140px; height: 210px; }
+.c-cover .bar { position: absolute; left: 10px; right: 10px; bottom: 10px; height: 5px; background: rgba(255,255,255,.35); box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+.c-play { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; transition: opacity .15s; }
+.c-play span { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,253,247,.95); color: var(--plum); box-shadow: var(--shadow-md); }
+.c-item:hover .c-play { opacity: 1; }
+.c-item .ct { font-weight: 800; line-height: 1.2; font-size: 15px; }
+.c-item .cs { font-size: 13px; color: var(--ink-soft); }
+.c-ring { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(46,27,85,.55); border-radius: 3px 8px 8px 3px; color: var(--cream); }
+.c-ring div { display: grid; place-items: center; position: relative; }
+.c-ring b { position: absolute; font-size: 15px; }
+
+/* Tuft animation (copied from the app's base.css) */
+{{ANIM}}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    {{NEW_HELLO_SMALL}}
+    <div class="stack">
+      <span class="eyebrow">Branch design-updates</span>
+      <h1>Tuft and the Keep Reading row</h1>
+      <p class="muted">Two design passes. Tuft gets concept art from the new picture models plus a redrawn, still-animated SVG. Keep Reading gets three new layouts to choose from.</p>
+    </div>
+  </header>
+
+  <section class="stack-lg">
+    <div class="stack">
+      <span class="eyebrow">Part 1</span>
+      <h2>A higher-fidelity Tuft</h2>
+    </div>
+
+    <div class="answer">
+      <div><b>Can the picture models draw an animatable Tuft?</b><p class="muted">Not directly. GPT Image and Nano Banana make flat pictures (pixels). They can't make the separate layers we animate: hat, wings, eyes, tail.</p></div>
+      <div><b>So what are they good for?</b><p class="muted">Concept art. They're great for exploring the look quickly. Once we pick a direction, I redraw it as layered SVG so the bobbing, blinking and wiggling keep working.</p></div>
+      <div><b>Another option</b><p class="muted">A hybrid. Use a painted Tuft for big moments (Welcome, Meet Tuft, empty states) with a gentle float and sparkle. Keep the SVG for small sizes and for the poses that need moving parts.</p></div>
+    </div>
+
+    <div class="stack">
+      <h3>What was going wrong</h3>
+      <p class="muted">The two “ears” were his wings: tall ovals set high on his sides, right under the hat brim. The “guitar neck” was meant to be his long tail; Tuft is a long-tailed tit (shima enaga), the little Japanese “snow fairy” bird. The extra piece on the hat was a curled tip with a gold pom-pom. Each one came out ambiguous, so I told the models exactly what to avoid.</p>
+    </div>
+
+    <div class="stack">
+      <h3>Concept art: three styles, two models each</h3>
+      <div class="concepts">
+        <figure class="concept"><img src="flat-gpt.jpg" alt="Flat vector Tuft by GPT Image 2"><figcaption><b>Flat vector</b> · GPT Image 2. The closest to what we can rebuild in SVG.</figcaption></figure>
+        <figure class="concept"><img src="flat-nano.jpg" alt="Flat vector Tuft by Nano Banana 2"><figcaption><b>Flat vector, outlined</b> · Nano Banana 2. Sticker style with ink outlines.</figcaption></figure>
+        <figure class="concept"><img src="soft3d-gpt.jpg" alt="Soft 3D Tuft by GPT Image 2"><figcaption><b>Soft 3D</b> · GPT Image 2. Felt hat, velvety feathers.</figcaption></figure>
+        <figure class="concept"><img src="soft3d-nano.jpg" alt="Soft 3D Tuft by Nano Banana 2"><figcaption><b>Soft 3D</b> · Nano Banana 2. Vinyl toy look.</figcaption></figure>
+        <figure class="concept"><img src="storybook-gpt.jpg" alt="Storybook Tuft by GPT Image 2"><figcaption><b>Storybook</b> · GPT Image 2. Colored pencil, matches book art.</figcaption></figure>
+        <figure class="concept"><img src="storybook-nano.jpg" alt="Storybook Tuft by Nano Banana 2"><figcaption><b>Storybook</b> · Nano Banana 2. Gouache with soft linework.</figcaption></figure>
+      </div>
+    </div>
+
+    <div class="stack">
+      <h3>Expression sheets</h3>
+      <p class="muted">The same poses the app uses today: wave, read, write, sleep, cheer, think. Both models kept him consistent across poses, so a painted set of hero images is realistic.</p>
+      <div class="sheets">
+        <img src="sheet-gpt.jpg" alt="Six-pose Tuft expression sheet by GPT Image 2">
+        <img src="sheet-nano.jpg" alt="Six-pose Tuft expression sheet by Nano Banana 2">
+      </div>
+    </div>
+
+    <div class="stack">
+      <h3>SVG rebuild, still animated</h3>
+      <p class="muted">A redraw of the Flat vector concept in code. It's already on the branch, so every screen that shows Tuft would pick it up. Watch him bob and blink; the tail now gives a little flick.</p>
+      <div class="ba">
+        <div class="ba-card"><span class="lbl">Before</span>{{OLD_HELLO}}</div>
+        <div class="ba-card"><span class="lbl">After</span>{{NEW_HELLO}}</div>
+      </div>
+      <div class="poses">{{NEW_POSES}}</div>
+      <ul class="changes">
+        <li><b>Wings, not ears.</b> Smaller wings sit lower on his sides, with scalloped feather tips and a dark edge. The far wing is smaller, so he looks turned slightly to one side.</li>
+        <li><b>A readable tail.</b> Alternating dark and pale feathers fan up from behind him, like the concepts.</li>
+        <li><b>One clean hat.</b> A single floppy tip with no pom-pom, a wider brim with an underside, a gold band and a soft highlight. It also fixes a bug where the hat's wiggle animation wiped out its tilt.</li>
+        <li><b>A real beak and softer blush.</b> A small wedge beak with a highlight, gradient cheeks and a second catch-light in each eye.</li>
+      </ul>
+    </div>
+  </section>
+
+  <hr>
+
+  <section class="stack-lg">
+    <div class="stack">
+      <span class="eyebrow">Part 2</span>
+      <h2>Keep Reading, three ways</h2>
+      <p class="muted">Each option shows two books in progress and one being adapted. All three fix the basics: the cards stand apart from the page, titles get room, buttons are centered, and there's no dead space.</p>
+    </div>
+
+    <div class="option">
+      <div class="option-head"><h3>A · Bookmark cards</h3></div>
+      <div class="surface">
+        <div class="app-h">Keep reading</div>
+        <div class="a-row">
+          <div class="a-card">
+            <div class="bk oz photo"><img src="oz.jpg" alt=""></div>
+            <div class="a-body">
+              <div class="a-title">The Wonderful Wizard of Oz</div>
+              <div class="a-sub">Original · L. Frank Baum</div>
+              <div class="a-prog"><div class="bar"><i style="width:4%"></i></div><span class="num">4%</span></div>
+              <div class="a-foot"><span class="meta">Chapter 2 of 24</span><button class="btn btn-plum">{{PLAY}} Resume</button></div>
+            </div>
+          </div>
+          <div class="a-card">
+            <div class="bk pan"><span>Peter Pan</span></div>
+            <div class="a-body">
+              <div class="a-title">Peter Pan</div>
+              <div class="a-sub">Picture Book · J. M. Barrie</div>
+              <div class="a-prog"><div class="bar"><i style="width:62%"></i></div><span class="num">62%</span></div>
+              <div class="a-foot"><span class="meta">Chapter 11 of 17</span><button class="btn btn-plum">{{PLAY}} Resume</button></div>
+            </div>
+          </div>
+          <div class="a-card">
+            <div class="bk garden"><span>The Secret Garden</span></div>
+            <div class="a-body">
+              <div class="a-title">The Secret Garden</div>
+              <span class="chip"><span class="dot"></span> Adapting · 7 of 27 chapters</span>
+              <div class="a-prog"><div class="bar lav"><i style="width:26%"></i></div><span class="num">26%</span></div>
+              <div class="a-foot"><span class="meta">About 20 min left</span><button class="btn btn-ghost">View</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes">
+        <p>White cards with a real shadow stand out from the parchment.</p>
+        <p>Bigger cover and a serif title make each one feel like a book.</p>
+        <p>A labeled Resume pill is clearer than a bare play icon.</p>
+        <p class="minus">Three equal cards, so nothing says “start here.”</p>
+      </div>
+    </div>
+
+    <div class="option">
+      <div class="option-head"><h3>B · Now reading + queue</h3><span class="pick">My pick</span></div>
+      <div class="surface">
+        <div class="b-grid">
+          <div class="b-hero">
+            <svg class="spark" style="right:22px;top:18px" width="18" height="18" viewBox="-6 -6 12 12"><path d="M0-5L1.4-1.4 5 0 1.4 1.4 0 5-1.4 1.4-5 0-1.4-1.4Z" fill="currentColor"/></svg>
+            <svg class="spark" style="right:60px;top:52px" width="10" height="10" viewBox="-6 -6 12 12"><path d="M0-5L1.4-1.4 5 0 1.4 1.4 0 5-1.4 1.4-5 0-1.4-1.4Z" fill="currentColor"/></svg>
+            <div class="bk oz photo"><img src="oz.jpg" alt=""></div>
+            <div class="b-body">
+              <span class="eyebrow">Pick up where you left off</span>
+              <h3>The Wonderful Wizard of Oz</h3>
+              <span class="sub">Original · Chapter 2: The Council with the Munchkins</span>
+              <div class="bar"><i style="width:4%"></i></div>
+              <div class="prog-line num"><span>4% read</span><span>Last read yesterday</span></div>
+              <button class="btn btn-gold">{{PLAY}} Continue reading</button>
+            </div>
+          </div>
+          <div class="b-queue">
+            <div class="b-qh eyebrow">Also on the go</div>
+            <div class="b-row">
+              <div class="bk pan"></div>
+              <div class="rb"><span class="rt">Peter Pan</span><div class="bar"><i style="width:62%"></i></div><span class="rs num"><span>Picture Book</span><span>62%</span></span></div>
+            </div>
+            <div class="b-row">
+              <div class="bk garden"></div>
+              <div class="rb"><span class="rt">The Secret Garden</span><div class="bar lav"><i style="width:26%"></i></div><span class="rs num"><span>Adapting · 7 of 27 chapters</span><span>26%</span></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes">
+        <p>One obvious next step, above the fold, with strong contrast.</p>
+        <p>The queue keeps reading and adapting books together, with color telling them apart.</p>
+        <p>Works with one book (the hero goes full width) or several.</p>
+        <p class="minus">The chapter name needs the reader position stored as a chapter, not only a percent. Worth checking that we have it.</p>
+      </div>
+    </div>
+
+    <div class="option">
+      <div class="option-head"><h3>C · Cover rail</h3></div>
+      <div class="surface">
+        <div class="app-h">Keep reading</div>
+        <div class="c-rail">
+          <div class="c-item">
+            <div class="c-cover"><div class="bk oz photo"><img src="oz.jpg" alt=""></div><div class="bar"><i style="width:4%"></i></div><div class="c-play"><span>{{PLAY_BIG}}</span></div></div>
+            <span class="ct">The Wonderful Wizard of Oz</span><span class="cs num">4% · Original</span>
+          </div>
+          <div class="c-item">
+            <div class="c-cover"><div class="bk pan"><span>Peter Pan</span></div><div class="bar"><i style="width:62%"></i></div><div class="c-play"><span>{{PLAY_BIG}}</span></div></div>
+            <span class="ct">Peter Pan</span><span class="cs num">62% · Picture Book</span>
+          </div>
+          <div class="c-item">
+            <div class="c-cover"><div class="bk garden"><span>The Secret Garden</span></div>
+              <div class="c-ring"><div><svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="5"/><circle cx="32" cy="32" r="27" fill="none" stroke="#f6e3ae" stroke-width="5" stroke-linecap="round" stroke-dasharray="44 170" transform="rotate(-90 32 32)"/></svg><b class="num">26%</b></div></div>
+            </div>
+            <span class="ct">The Secret Garden</span><span class="cs">Adapting · 7 of 27</span>
+          </div>
+        </div>
+      </div>
+      <div class="notes">
+        <p>Cover-forward, like “continue watching” rows. Very compact.</p>
+        <p>Matches the shelf below, so the page feels like one library.</p>
+        <p class="minus">Less room for detail, and the play button only shows on hover (tap goes straight in on phones).</p>
+      </div>
+    </div>
+  </section>
+</div>
