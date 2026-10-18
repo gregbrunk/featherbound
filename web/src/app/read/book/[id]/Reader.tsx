@@ -62,6 +62,7 @@ export default function Reader({ bookId, textBase, textQuery = '', title, subtit
   const startIndex = Math.max(0, sections.findIndex((s) => s.id === start.sectionId));
   const [index, setIndex] = useState(startIndex);
   const [loaded, setLoaded] = useState<{ sectionId: string; blocks: Block[] } | null>(null);
+  const [zoom, setZoom] = useState<{ imageId: string; alt: string } | null>(null);
   const [page, setPage] = useState(0);
   const [pages, setPages] = useState(1);
   const [chrome, setChrome] = useState(true);
@@ -158,13 +159,14 @@ export default function Reader({ bookId, textBase, textQuery = '', title, subtit
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
+      if (zoom) { if (e.key === 'Escape') setZoom(null); return; }
       if (panel) return;
       if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); next(); }
       if (e.key === 'ArrowLeft' || e.key === 'PageUp') prev();
     };
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
-  }, [next, prev, panel]);
+  }, [next, prev, panel, zoom]);
 
   const touch = useRef<{ x: number; y: number } | null>(null);
   const onPointerDown = (e: React.PointerEvent) => { touch.current = { x: e.clientX, y: e.clientY }; };
@@ -174,6 +176,8 @@ export default function Reader({ bookId, textBase, textQuery = '', title, subtit
     if (!t) return;
     const dx = e.clientX - t.x, dy = e.clientY - t.y;
     if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) { if (dx < 0) next(); else prev(); return; }
+    // A tap on a picture opens it full screen instead of turning the page.
+    if ((e.target as HTMLElement).closest('.illus')) return;
     if (Math.abs(dx) < 8 && Math.abs(dy) < 8 && window.getSelection()?.isCollapsed !== false) {
       const r = pagerRef.current!.getBoundingClientRect();
       const x = (e.clientX - r.left) / r.width;
@@ -241,7 +245,9 @@ export default function Reader({ bookId, textBase, textQuery = '', title, subtit
             {blocks.map((b, i) => {
               if (b.type === 'hr') return <div key={i} className="scene-break" aria-hidden="true">⁂</div>;
               if (b.type === 'img') return (
-                <figure key={i} className="illus">
+                <figure key={i} className="illus" role="button" tabIndex={0} aria-label={`Show picture full screen${b.alt ? `: ${b.alt}` : ''}`}
+                  onClick={(e) => { e.stopPropagation(); setZoom({ imageId: b.imageId, alt: b.alt }); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setZoom({ imageId: b.imageId, alt: b.alt }); } }}>
                   {/* Book images come from our auth-checked image route. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img className="illus-img" src={`/api/books/${bookId}/images/${b.imageId}`} alt={b.alt} loading="lazy" />
@@ -257,6 +263,16 @@ export default function Reader({ bookId, textBase, textQuery = '', title, subtit
           </div>
         )}
       </div>
+
+      {zoom && (
+        <div className="scrim" onClick={() => setZoom(null)} role="dialog" aria-modal="true" aria-label="Picture">
+          <figure className="illus-zoom">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="illus-img" src={`/api/books/${bookId}/images/${zoom.imageId}`} alt={zoom.alt} />
+            {zoom.alt && <figcaption>{zoom.alt}</figcaption>}
+          </figure>
+        </div>
+      )}
 
       <footer className="reader-foot">
         <button className="btn btn-ghost btn-icon" onClick={prev} aria-label="Previous page"><Icon name="left" /></button>

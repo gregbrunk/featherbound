@@ -12,7 +12,9 @@ import type { Block } from '@/lib/import/types';
 import { looksLikeNewEdition, nextFreeVersion, suggestedLevel } from '@/lib/versions';
 import { startRefine } from '../../../books/edition-actions';
 
-type Scope = 'whole' | 'chapters' | 'passage';
+type Scope = 'whole' | 'chapters' | 'passage' | 'pictures';
+type Picture = { sectionId: string; chapterNumber: number; imageId: string; alt: string };
+type Op = { action: 'redraw' | 'remove' | 'replace'; note?: string; uploadPath?: string; uploading?: boolean; preview?: string };
 type Chapter = { sectionId: string; number: number; title: string; words: number; cost: number };
 
 const safeInline = (html: string) => html.replace(/<(?!\/?(em|strong)>|br\s*\/?>)[^>]*>/gi, '');
@@ -23,13 +25,16 @@ const IDEAS = [
   'Keep more of the author’s own words.',
 ];
 
-export default function Refine({ book, edition, chapters, prices, capFor }: {
+export default function Refine({ book, edition, chapters, prices, capFor, pictures, uploadPrefix }: {
   book: { id: string; title: string };
   edition: { id: string; name: string; version: string; versionName: string; existing: string[] };
   chapters: Chapter[];
-  prices: { whole: number; wholeMinutes: number; passage: number; perChapterOverhead: number };
+  prices: { whole: number; wholeMinutes: number; passage: number; perChapterOverhead: number; perPicture: number };
   capFor: { whole: number; passage: number };
+  pictures: Picture[];
+  uploadPrefix: string;
 }) {
+  const [ops, setOps] = useState<Record<string, Op>>({});
   const [scope, setScope] = useState<Scope>('chapters');
   const [picked, setPicked] = useState<string[]>([]);
   const [passageChapter, setPassageChapter] = useState(chapters[0]?.sectionId ?? '');
@@ -52,17 +57,23 @@ export default function Refine({ book, edition, chapters, prices, capFor }: {
     return () => { cancelled = true; };
   }, [scope, passageChapter, paragraphs, edition.id, edition.version]);
 
-  const count = scope === 'whole' ? chapters.length : scope === 'chapters' ? picked.length : 1;
-  const suggested = suggestedLevel(scope, count);
+  const opList = Object.entries(ops);
+  const redraws = opList.filter(([, o]) => o.action === 'redraw').length;
+  const count = scope === 'whole' ? chapters.length : scope === 'chapters' ? picked.length : scope === 'pictures' ? opList.length : 1;
+  const suggested = scope === 'pictures' ? 'patch' : suggestedLevel(scope, count);
   const level = levelOverride ?? suggested;
   const next = nextFreeVersion(edition.existing, edition.version, level);
   const cost = scope === 'whole' ? prices.whole
     : scope === 'passage' ? prices.passage
+    : scope === 'pictures' ? redraws * prices.perPicture
     : chapters.filter((c) => picked.includes(c.sectionId)).reduce((n, c) => n + c.cost, 0);
   const minutes = scope === 'whole' ? prices.wholeMinutes : Math.max(1, Math.ceil(count / 3) * 2);
   const cap = capOverride ?? (scope === 'whole' ? capFor.whole : scope === 'passage' ? capFor.passage : Math.max(1, Math.ceil(cost * 1.5 + 0.5)));
+  const uploading = opList.some(([, o]) => o.uploading || (o.action === 'replace' && !o.uploadPath));
   const nudge = looksLikeNewEdition(guidance);
-  const ready = guidance.trim().length > 4 && (scope !== 'chapters' || picked.length > 0) && (scope !== 'passage' || para !== null);
+  const ready = scope === 'pictures'
+    ? opList.length > 0 && !uploading
+    : guidance.trim().length > 4 && (scope !== 'chapters' || picked.length > 0) && (scope !== 'passage' || para !== null);
   const blocks = paragraphs?.sectionId === passageChapter ? paragraphs.blocks : null;
 
   const submit = () => start(async () => {
@@ -70,6 +81,10 @@ export default function Refine({ book, edition, chapters, prices, capFor }: {
     try {
       const r = await startRefine(edition.id, {
         scope, sectionIds: picked, guidance, level, capUsd: cap,
+        pictures: scope === 'pictures' ? opList.map(([key, o]) => {
+          const p = pictures.find((x) => `${x.sectionId}:${x.imageId}` === key)!;
+          return { sectionId: p.sectionId, imageId: p.imageId, action: o.action, note: o.note, uploadPath: o.uploadPath };
+        }) : undefined,
         passage: scope === 'passage' && para !== null ? { sectionId: passageChapter, index: para } : undefined,
       });
       if (r && !r.ok) setMessage(r.message);
@@ -94,7 +109,12 @@ export default function Refine({ book, edition, chapters, prices, capFor }: {
         <div className="card stack">
           <span className="label">What should I change?</span>
           <Segmented<Scope> label="Scope" value={scope} onChange={(s) => { setScope(s); setLevelOverride(null); setCapOverride(null); }}
-            options={[{ value: 'whole', label: 'The whole edition' }, { value: 'chapters', label: 'Some chapters' }, { value: 'passage', label: 'One passage' }]} />
+            options={[
+              { value: 'whole', label: 'The whole edition' }, { value: 'chapters', label: 'Some chapters' }, { value: 'passage', label: 'One passage' },
+              ...(pictures.length ? [{ value: 'pictures' as Scope, label: 'Pictures' }] : []),
+            ]} />
+
+          {scope === 'pictures' && <PicturePicker bookId={book.id} pictures={pictures} ops={ops} setOps={setOps} uploadPrefix={uploadPrefix} />}
 
           {scope === 'chapters' && (
             <div className="chapter-pick">
@@ -125,7 +145,7 @@ export default function Refine({ book, edition, chapters, prices, capFor }: {
             </div>
           )}
 
-          <div className="field">
+          {scope !== 'pictures' && <div className="field">
             <label className="label" htmlFor="guidance">Your guidance</label>
             <textarea id="guidance" className="textarea" maxLength={2000} value={guidance} onChange={(e) => setGuidance(e.target.value)}
               placeholder="e.g. The Lion should get a few more brave moments. He’s her favorite." />
@@ -134,7 +154,7 @@ export default function Refine({ book, edition, chapters, prices, capFor }: {
                 <button key={t} type="button" className="chip chip-outline" style={{ border: 'none', cursor: 'pointer' }} onClick={() => setGuidance(t)}><Icon name="plus" size={12} /> {t}</button>
               ))}
             </div>
-          </div>
+          </div>}
 
           {nudge && (
             <div className="card card-tinted row" style={{ gap: 14, flexWrap: 'wrap' }}>
@@ -162,7 +182,7 @@ export default function Refine({ book, edition, chapters, prices, capFor }: {
             <div className="est-total">
               <span className="tiny faint">ESTIMATE</span>
               <strong>~{money(cost)}</strong>
-              <span className="small muted">{scope === 'passage' ? 'one passage' : `${count} chapter${count === 1 ? '' : 's'}`} · about {fmtMinutes(minutes)}</span>
+              <span className="small muted">{scope === 'passage' ? 'one passage' : scope === 'pictures' ? `${count} picture${count === 1 ? '' : 's'}${redraws ? `, ${redraws} to redraw` : ''}` : `${count} chapter${count === 1 ? '' : 's'}`} · about {fmtMinutes(minutes)}</span>
             </div>
           </div>
           <div className="field">
@@ -180,5 +200,55 @@ export default function Refine({ book, edition, chapters, prices, capFor }: {
         </div>
       </div>
     </main>
+  );
+}
+
+function PicturePicker({ bookId, pictures, ops, setOps, uploadPrefix }: {
+  bookId: string; pictures: Picture[]; ops: Record<string, Op>; setOps: (fn: (o: Record<string, Op>) => Record<string, Op>) => void; uploadPrefix: string;
+}) {
+  const set = (key: string, op: Op | null) => setOps((o) => { const n = { ...o }; if (op) n[key] = op; else delete n[key]; return n; });
+  const onFile = async (key: string, file: File) => {
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { alert('Pick a JPEG, PNG or WebP picture.'); return; }
+    set(key, { action: 'replace', uploading: true, preview: URL.createObjectURL(file) });
+    try {
+      const { upload } = await import('@vercel/blob/client');
+      const safe = file.name.replace(/[^a-zA-Z0-9._ -]/g, '_');
+      const blob = await upload(`${uploadPrefix}${safe}`, file, { access: 'private', handleUploadUrl: '/api/upload' });
+      setOps((o) => ({ ...o, [key]: { ...o[key], uploading: false, uploadPath: blob.pathname } }));
+    } catch {
+      set(key, null);
+      alert('That upload didn’t work. Try again?');
+    }
+  };
+  return (
+    <div className="stack-sm">
+      <span className="small muted">Pick what to do with any picture. Everything else stays as it is.</span>
+      <div className="pic-pick">
+        {pictures.map((p) => {
+          const key = `${p.sectionId}:${p.imageId}`;
+          const op = ops[key];
+          return (
+            <div key={key} className={`pic-card ${op ? 'on' : ''}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={op?.preview ?? `/api/books/${bookId}/images/${p.imageId}`} alt={p.alt} loading="lazy" style={{ opacity: op?.action === 'remove' ? 0.35 : 1 }} />
+              <span className="tiny faint">Chapter {p.chapterNumber}</span>
+              {p.alt && <span className="tiny clamp-3">{p.alt}</span>}
+              <div className="row" style={{ gap: 2, flexWrap: 'wrap' }}>
+                <button type="button" className={`btn btn-sm ${op?.action === 'redraw' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => set(key, op?.action === 'redraw' ? null : { action: 'redraw' })}><Icon name="refresh" size={14} /> Redraw</button>
+                <label className={`btn btn-sm ${op?.action === 'replace' ? 'btn-primary' : 'btn-ghost'}`} style={{ cursor: 'pointer' }}>
+                  <Icon name="upload" size={14} /> {op?.uploading ? 'Uploading…' : 'Upload'}
+                  <input type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) void onFile(key, f); }} />
+                </label>
+                <button type="button" className={`btn btn-sm ${op?.action === 'remove' ? 'btn-primary' : 'btn-ghost'}`} aria-label="Remove picture" onClick={() => set(key, op?.action === 'remove' ? null : { action: 'remove' })}><Icon name="trash" size={14} /></button>
+              </div>
+              {op?.action === 'redraw' && (
+                <input className="input" style={{ height: 34, fontSize: 13 }} placeholder="What should change? (optional)" value={op.note ?? ''} maxLength={500}
+                  onChange={(e) => set(key, { ...op, note: e.target.value })} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }

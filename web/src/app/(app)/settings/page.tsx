@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { connection } from 'next/server';
 import { asc } from 'drizzle-orm';
 import Icon from '@/components/Icon';
 import Tuft from '@/components/Tuft';
@@ -57,6 +58,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 }
 
 async function UsageTab({ userId }: { userId: string }) {
+  // "This month" depends on the clock, so render at request time.
+  await connection();
   const [usage, settings] = await Promise.all([getUsage(userId), getAccountSettings(userId)]);
   return <UsageView usage={usage} budget={settings?.monthlyBudget ? Number(settings.monthlyBudget) : null} />;
 }

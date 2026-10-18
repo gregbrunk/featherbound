@@ -1,0 +1,1 @@
+ALTER TABLE "edition_chapters" ADD COLUMN "moments" jsonb DEFAULT '[]'::jsonb NOT NULL;

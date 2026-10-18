@@ -1,7 +1,9 @@
 import { notFound, redirect } from 'next/navigation';
 import { getModelChoices } from '@/lib/ai';
 import { getEdition } from '@/lib/analysis';
-import { defaultCap, estimateRefine, PASSAGE_WORDS } from '@/lib/estimate';
+import { defaultCap, estimatePictures, estimateRefine, PASSAGE_WORDS } from '@/lib/estimate';
+import type { Block } from '@/lib/import/types';
+import { accountPrefix, readJson } from '@/lib/storage';
 import { getBook, listSections } from '@/lib/library';
 import { getVersion, listVersionChapters, listVersions } from '@/lib/runs';
 import { requireAccount } from '@/lib/session';
@@ -30,6 +32,11 @@ export default async function RefinePage({ params }: { params: Promise<{ id: str
     const w = words.get(m.sectionId) ?? c?.originalWords ?? 0;
     return { sectionId: m.sectionId, number: i + 1, title: c?.kidTitle ?? c?.title ?? `Chapter ${i + 1}`, words: w, cost: estimateRefine(size, w, 1, models).cost };
   });
+  // Every picture in the current version, for Refine → Pictures.
+  const pictures = (await Promise.all(chapters.map(async (c, i) => {
+    const { blocks } = await readJson<{ blocks: Block[] }>(c.textPath);
+    return blocks.flatMap((b) => (b.type === 'img' && c.sectionId ? [{ sectionId: c.sectionId, chapterNumber: i + 1, imageId: b.imageId, alt: b.alt }] : []));
+  }))).flat();
   const whole = estimateRefine(size, list.reduce((n, c) => n + c.words, 0), list.length, models);
   const passage = estimateRefine(size, PASSAGE_WORDS, 1, models);
 
@@ -38,7 +45,9 @@ export default async function RefinePage({ params }: { params: Promise<{ id: str
       book={{ id: book.id, title: book.title }}
       edition={{ id: ed.id, name: ed.name, version: version.number, versionName: version.name, existing: versions.map((v) => v.number) }}
       chapters={list}
-      prices={{ whole: whole.cost, wholeMinutes: whole.minutes, passage: passage.cost, perChapterOverhead: 0.02 }}
+      prices={{ whole: whole.cost, wholeMinutes: whole.minutes, passage: passage.cost, perChapterOverhead: 0.02, perPicture: estimatePictures(1, models) }}
+      pictures={pictures}
+      uploadPrefix={`${accountPrefix(userId)}uploads/`}
       capFor={{ whole: defaultCap(whole.cost * 1.3), passage: defaultCap(passage.cost * 1.5) }}
     />
   );

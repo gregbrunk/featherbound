@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, inArray, ne } from 'drizzle-orm';
 import { getDb } from '@/db';
-import { editionChapters, editionRuns, editionVersions } from '@/db/schema';
+import { characterSheets, editionChapters, editionRuns, editionVersions } from '@/db/schema';
 
 // Account-scoped reads for adaptation runs, adapted chapters and versions.
 
@@ -71,3 +71,18 @@ export async function getVersion(userId: string, editionId: string, number: stri
 }
 
 export const editionTarget = (editionId: string) => `edition:${editionId}`;
+
+export type SheetRow = typeof characterSheets.$inferSelect;
+
+export async function listSheets(userId: string, editionId: string) {
+  return getDb()
+    .select()
+    .from(characterSheets)
+    .where(and(eq(characterSheets.userId, userId), eq(characterSheets.editionId, editionId)))
+    .orderBy(asc(characterSheets.position));
+}
+
+export async function getSheet(userId: string, sheetId: string) {
+  const [row] = await getDb().select().from(characterSheets).where(and(eq(characterSheets.userId, userId), eq(characterSheets.id, sheetId))).limit(1);
+  return row ?? null;
+}

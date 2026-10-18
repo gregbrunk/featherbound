@@ -31,3 +31,16 @@ describe('recaps', () => {
     expect(stripRecapLead('Dorothy met a Scarecrow.')).toBe('Dorothy met a Scarecrow.');
   });
 });
+
+describe('picture moments', () => {
+  it('splits a chapter’s pictures across its parts by length, adding up exactly', async () => {
+    const { picturesForPart } = await import('./adapt');
+    const { defaultSettings } = await import('./editions');
+    const blocks = [para(1500), para(1500), para(1000)];
+    const job = { settings: defaultSettings(7), bible: '', guidance: [], storySoFar: [], chapterNumber: 1, title: 't', chapterSummary: '', blocks, pictures: 3 };
+    const chunks = [[0], [1], [2]];
+    const split = chunks.map((_, i) => picturesForPart(job, chunks, i));
+    expect(split.reduce((a, b) => a + b, 0)).toBe(3);
+    expect(picturesForPart({ ...job, pictures: 0 }, chunks, 0)).toBe(0);
+  });
+});

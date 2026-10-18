@@ -87,6 +87,8 @@ export const series = pgTable(
     userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     author: text('author'),
+    /** The look researched for an earlier book in the series; later books start from it. */
+    visualDirection: jsonb('visual_direction').$type<ArtDirection>(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('series_user_idx').on(t.userId)],
@@ -236,6 +238,21 @@ export const storyBibles = pgTable('story_bibles', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** The visual direction for an illustrated edition, from the research step. */
+export type ArtDirection = {
+  /** e.g. "W. W. Denslow's 1900 originals". */
+  look: string;
+  /** Other looks the research found, for the parent to pick from later. */
+  options: { name: string; note: string }[];
+  /** Drawing instructions in visual terms; goes into every picture prompt. */
+  style: string;
+  palette: string;
+  /** Image ids (in the book's images folder) used as style references. */
+  references: string[];
+  researchedAt: string;
+  error?: string;
+};
+
 export type EditionStatus = 'draft' | 'making-samples' | 'samples-ready' | 'running' | 'paused-cap' | 'ready' | 'failed';
 
 export const editions = pgTable(
@@ -251,6 +268,8 @@ export const editions = pgTable(
     estimate: jsonb('estimate').$type<{ total: number; samples: number; minutes: number }>(),
     sampleGuidance: jsonb('sample_guidance').$type<string[]>().notNull().default([]),
     currentVersion: text('current_version'),
+    /** Picture Book mode: the researched look every picture follows. */
+    art: jsonb('art').$type<ArtDirection>(),
     /** Shown on the library until the parent opens the edition. */
     notice: text('notice').$type<'samples-ready' | 'paused-cap' | 'ready' | 'failed'>(),
     noticeAt: timestamp('notice_at', { withTimezone: true }),
@@ -265,8 +284,11 @@ export const editions = pgTable(
 export type SampleComment = { sectionId: string; quote: string; text: string };
 export type VersionLevel = 'major' | 'minor' | 'patch';
 /** What a refinement run was asked to do. */
+export type PictureOp = { sectionId: string; imageId: string; action: 'redraw' | 'remove' | 'replace'; note?: string; uploadPath?: string };
 export type RefineSpec = {
-  scope: 'whole' | 'chapters' | 'passage';
+  scope: 'whole' | 'chapters' | 'passage' | 'pictures';
+  /** For pictures: what to do to each one. */
+  pictures?: PictureOp[];
   guidance: string;
   level: VersionLevel;
   /** The version the run started from; the new version is built on its manifest. */
@@ -330,6 +352,8 @@ export const editionChapters = pgTable(
     names: jsonb('names').$type<string[]>().notNull().default([]),
     /** Set when the consistency check rewrote this chapter. */
     fixNote: text('fix_note'),
+    /** Picture Book mode: the moments chosen for pictures (block index + scene), drawn after the text. */
+    moments: jsonb('moments').$type<{ index: number; scene: string; characters: string[]; alt: string }[]>().notNull().default([]),
     costUsd: numeric('cost_usd', { precision: 12, scale: 6 }).notNull().default('0'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -355,4 +379,55 @@ export const editionVersions = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('edition_versions_edition_idx').on(t.editionId, t.createdAt)],
+);
+
+// ── Pictures ───────────────────────────────────────────────────────────────────────
+
+export type SheetStatus = 'drawing' | 'ready' | 'approved' | 'failed';
+
+/** One main character's reference drawing. Every scene with them uses it, once approved. */
+export const characterSheets = pgTable(
+  'character_sheets',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    editionId: uuid('edition_id').notNull().references(() => editions.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    /** What they look like, in drawing terms; reused in every scene prompt. */
+    description: text('description').notNull(),
+    position: integer('position').notNull().default(0),
+    status: text('status').$type<SheetStatus>().notNull().default('drawing'),
+    imageId: text('image_id'),
+    model: text('model'),
+    /** After a refusal, this character's pictures stay on the model that drew them. */
+    stickyModel: text('sticky_model'),
+    note: text('note'),
+    error: text('error'),
+    costUsd: numeric('cost_usd', { precision: 12, scale: 6 }).notNull().default('0'),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('character_sheets_edition_idx').on(t.editionId, t.position)],
+);
+
+/** Every picture drawn (or uploaded) for an edition, with what it was drawn from. */
+export const illustrations = pgTable(
+  'illustrations',
+  {
+    /** Also the image id in chapter blocks and in the book's images folder. */
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    editionId: uuid('edition_id').notNull().references(() => editions.id, { onDelete: 'cascade' }),
+    sectionId: uuid('section_id'),
+    runId: uuid('run_id'),
+    source: text('source').$type<'drawn' | 'uploaded' | 'redrawn-original'>().notNull(),
+    scene: text('scene').notNull().default(''),
+    alt: text('alt').notNull().default(''),
+    characters: jsonb('characters').$type<string[]>().notNull().default([]),
+    model: text('model'),
+    /** Models that refused before one drew it. */
+    refusedBy: jsonb('refused_by').$type<string[]>().notNull().default([]),
+    costUsd: numeric('cost_usd', { precision: 12, scale: 6 }).notNull().default('0'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('illustrations_edition_idx').on(t.editionId)],
 );

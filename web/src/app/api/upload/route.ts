@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { getAccount } from '@/lib/session';
 import { ownsPath } from '@/lib/storage';
 
-// Issues a short-lived token so the browser can upload a book file straight to the private
+// Issues a short-lived token so the browser can upload a book file (or a picture) straight to the private
 // Blob store. Only signed-in, allowed accounts get a token, and only for their own folder.
 export async function POST(request: Request) {
   const account = await getAccount();
@@ -22,6 +22,10 @@ export async function POST(request: Request) {
             'application/octet-stream',
             'application/x-mobipocket-ebook',
             'application/vnd.amazon.ebook',
+            // Your own pictures, to swap into an illustrated edition.
+            'image/jpeg',
+            'image/png',
+            'image/webp',
           ],
           maximumSizeInBytes: 200 * 1024 * 1024,
           addRandomSuffix: true,

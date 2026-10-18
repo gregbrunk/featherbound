@@ -5,7 +5,7 @@ import { editionSettingsSchema } from '@/lib/editions';
 import { defaultCap, estimateEdition } from '@/lib/estimate';
 import type { Block } from '@/lib/import/types';
 import { getBook, listSections } from '@/lib/library';
-import { getRun, latestRun, listRunChapters } from '@/lib/runs';
+import { getRun, latestRun, listRunChapters, listSheets } from '@/lib/runs';
 import { requireAccount } from '@/lib/session';
 import { readJson } from '@/lib/storage';
 import { clearNotice } from '../../../books/edition-actions';
@@ -39,6 +39,7 @@ export default async function SamplesPage({ params, searchParams }: { params: Pr
         runId={run.id}
         chapters={sampleSections.map((s) => `chapter ${numberOf.get(s.id)}`)}
         done={run.chaptersDone}
+        pictures={editionSettingsSchema.parse(ed.settings).picture.on}
         error={run.status === 'failed' ? run.error ?? 'Something went wrong.' : null}
       />
     );
@@ -68,7 +69,8 @@ export default async function SamplesPage({ params, searchParams }: { params: Pr
   );
 
   const settings = editionSettingsSchema.parse(ed.settings);
-  const est = estimateEdition({ words: book.words, chapters: sections.length }, { ...settings, picture: { ...settings.picture, on: false } }, await getModelChoices(userId));
+  const sheets = settings.picture.on ? await listSheets(userId, ed.id) : [];
+  const est = estimateEdition({ words: book.words, chapters: sections.length }, settings, await getModelChoices(userId));
   const firstNumber = numberOf.get(sections[0]?.id ?? '') ?? 1;
 
   return (
@@ -81,7 +83,11 @@ export default async function SamplesPage({ params, searchParams }: { params: Pr
       samples={samples.map((x) => ({ ...x, why: x.number === firstNumber ? 'Voice check' : 'Hardest chapter' }))}
       chapters={sections.map((s, i) => ({ id: s.id, label: `${i + 1}. ${s.title}` }))}
       estimate={{ total: est.total, minutes: est.minutes, samples: est.samples, cap: Math.max(Number(ed.costCap), defaultCap(est.total)) }}
-      picturesLater={settings.picture.on}
+      pictures={settings.picture.on ? {
+        look: ed.art?.look ?? null,
+        error: ed.art?.error ?? null,
+        sheets: sheets.map((x) => ({ id: x.id, name: x.name, description: x.description, status: x.status, imageId: x.imageId, model: x.model, error: x.error })),
+      } : null}
     />
   );
 }

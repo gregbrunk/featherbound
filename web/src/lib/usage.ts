@@ -17,6 +17,10 @@ const KIND_LABEL: Record<string, string> = {
   'import-suggest': 'Import help',
   consistency: 'Checks & naming',
   'version-name': 'Checks & naming',
+  picture: 'Pictures',
+  'character-sheet': 'Pictures',
+  'art-research': 'Pictures',
+  'art-check': 'Pictures',
 };
 
 export async function getUsage(userId: string, now = new Date()) {
