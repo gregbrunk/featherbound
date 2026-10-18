@@ -10,9 +10,12 @@ import { accountSettings, books, editions, user } from '@/db/schema';
 export type NoticeKind = 'samples-ready' | 'ready' | 'paused-cap' | 'failed';
 
 const appUrl = () => (process.env.BETTER_AUTH_URL ?? 'https://featherbound.ink').replace(/\/$/, '');
-// Until featherbound.ink is verified in Resend, its shared test sender only reaches the
-// Resend account's own address. Set EMAIL_FROM once the domain is verified.
-const from = () => process.env.EMAIL_FROM ?? 'Featherbound <onboarding@resend.dev>';
+// The Resend integration sets RESEND_EMAIL_DOMAIN to the verified domain (featherbound.ink).
+// EMAIL_FROM overrides it; without either, Resend's shared test sender only reaches the
+// Resend account's own address.
+const from = () =>
+  process.env.EMAIL_FROM ??
+  (process.env.RESEND_EMAIL_DOMAIN ? `Tuft at Featherbound <tuft@${process.env.RESEND_EMAIL_DOMAIN}>` : 'Featherbound <onboarding@resend.dev>');
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 export function noticeEmail(kind: NoticeKind, d: { title: string; edition: string; editionId: string; detail?: string }) {
@@ -53,6 +56,25 @@ export async function notify(editionId: string, kind: NoticeKind, detail?: strin
     const msg = noticeEmail(kind, { title: row.title, edition: row.edition, editionId, detail });
     const { error } = await new Resend(key).emails.send({ from: from(), to: row.email, subject: msg.subject, html: msg.html, text: msg.text });
     return error ? { sent: false, reason: error.message } : { sent: true };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** A test message to the signed-in parent, from Settings. */
+export async function sendTestEmail(to: string) {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return { sent: false, reason: 'Email isn’t set up on this server yet.' };
+  try {
+    const base = appUrl();
+    const { error } = await new Resend(key).emails.send({
+      from: from(),
+      to,
+      subject: 'Hello from Featherbound',
+      text: `This is a test from Featherbound. If you can read it, notices about long runs will reach you here.\n\n${base}`,
+      html: `<!doctype html><html><body style="margin:0;background:#fbf4e4;font-family:Georgia,serif;color:#2b2140"><div style="max-width:520px;margin:0 auto;padding:32px 24px"><p style="font:800 20px system-ui,sans-serif;color:#4b2e83;margin:0 0 18px">Featherbound</p><div style="background:#fffdf7;border-radius:18px;padding:24px"><p style="font-size:17px;line-height:1.55;margin:0 0 20px">This is a test from Featherbound. If you can read it, I’ll be able to tell you here when sample chapters are ready or a book is finished.</p><a href="${base}" style="display:inline-block;background:#4b2e83;color:#fff;text-decoration:none;font:800 15px system-ui,sans-serif;padding:12px 20px;border-radius:999px">Open Featherbound</a></div></div></body></html>`,
+    });
+    return error ? { sent: false, reason: error.message } : { sent: true, reason: '' };
   } catch (e) {
     return { sent: false, reason: e instanceof Error ? e.message : String(e) };
   }

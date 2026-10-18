@@ -5,7 +5,7 @@ import { Switch } from '@/components/ui';
 import Icon from '@/components/Icon';
 import Select from '@/components/Select';
 import { IMAGE_MODELS, TEXT_MODELS, imageModel, textModel, type Strictness } from '@/lib/models';
-import { addEmailAction, removeEmailAction, removeKeyAction, saveKeyAction, saveModelsAction, setEmailNoticesAction, setPinAction, setPreferDirectKeysAction, type FormState } from './actions';
+import { addEmailAction, removeEmailAction, removeKeyAction, saveKeyAction, saveModelsAction, sendTestEmailAction, setEmailNoticesAction, setPinAction, setPreferDirectKeysAction, type FormState } from './actions';
 
 function Status({ state }: { state: FormState }) {
   if (!state?.message) return null;
@@ -194,6 +194,8 @@ export function PreferDirectForm({ prefer, billing }: { prefer: boolean; billing
 export function EmailNoticesForm({ on: initial, email, ready }: { on: boolean; email: string; ready: boolean }) {
   const [on, setOn] = useState(initial);
   const [pending, start] = useTransition();
+  const [testing, startTest] = useTransition();
+  const [test, setTest] = useState<FormState>(null);
   return (
     <div className="card stack-sm">
       <div className="toggle-row">
@@ -203,7 +205,14 @@ export function EmailNoticesForm({ on: initial, email, ready }: { on: boolean; e
         </div>
         <Switch checked={on} label="Email me about long runs" onChange={(v) => { setOn(v); start(async () => { await setEmailNoticesAction(v); }); }} />
       </div>
-      {!ready && <p className="tiny muted">Email isn’t set up on this server yet, so nothing will be sent.{pending ? ' Saving…' : ''}</p>}
+      {ready ? (
+        <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+          <button type="button" className="btn btn-secondary btn-sm" disabled={testing} onClick={() => startTest(async () => setTest(await sendTestEmailAction()))}>
+            <Icon name="comment" size={14} /> {testing ? 'Sending…' : 'Send me a test email'}
+          </button>
+          <Status state={test} />
+        </div>
+      ) : <p className="tiny muted">Email isn’t set up on this server yet, so nothing will be sent.{pending ? ' Saving…' : ''}</p>}
     </div>
   );
 }
