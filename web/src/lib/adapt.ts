@@ -81,6 +81,12 @@ const chunkSchema = z.object({
   summary: z.string().describe('Two sentences on what happens in this part, as adapted'),
   kidTitle: z.string().nullable().describe('Only when asked: a playful chapter title for a child. Otherwise null.'),
   recap: z.string().nullable().describe('Only when asked: the "story so far" recap. Otherwise null.'),
+  moments: z.array(z.object({
+    paragraph: z.number().int().describe('The picture goes after this paragraph number'),
+    scene: z.string().describe('What to draw, for an illustrator: who is where doing what, setting, mood. As adapted, gentle for this age.'),
+    characters: z.array(z.string()).describe('Named characters in the picture'),
+    alt: z.string().describe('A one-sentence caption for screen readers'),
+  })).describe('Only when asked for picture moments; otherwise an empty list.'),
 });
 
 export type ChapterJob = {
@@ -96,9 +102,15 @@ export type ChapterJob = {
   blocks: Block[];
   /** Extra instruction when re-writing a chapter, e.g. from the consistency check. */
   fix?: string;
+  /** Picture Book mode: how many picture moments to pick in this chapter. */
+  pictures?: number;
 };
 
+/** A spot for a picture: after block `index`, showing `scene`. */
+export type Moment = { index: number; scene: string; characters: string[]; alt: string };
+
 export type ChapterResult = {
+  moments: Moment[];
   blocks: Block[];
   changeNotes: ChangeNote[];
   names: string[];
@@ -139,6 +151,7 @@ export function cleanInline(html: string) {
 export class AlignmentError extends Error {}
 
 export type PartResult = {
+  moments: Moment[];
   paragraphs: string[];
   changeNotes: ChangeNote[];
   names: string[];
@@ -156,9 +169,11 @@ export async function adaptPart(model: LanguageModel, job: ChapterJob, chunks: n
   const idx = chunks[ci];
   const first = ci === 0;
   const paragraphs = idx.map((i) => (job.blocks[i] as { html: string }).html);
+  const wanted = picturesForPart(job, chunks, ci);
   const asks = [
     first && s.extras.kidTitles ? 'Also write kidTitle: a playful, spoiler-free chapter title a child would love (the original title stays underneath it).' : '',
     first && s.extras.recaps && job.chapterNumber > 1 ? 'Also write recap: "The story so far…" in two or three warm sentences for a child, from the earlier chapters listed above. No spoilers for this chapter.' : '',
+    wanted ? `Also choose ${wanted} picture moment${wanted > 1 ? 's' : ''} in this part: memorable, spread out, and showing what you wrote (gentle for this age). Prefer moments with the main characters.` : '',
   ].filter(Boolean).join('\n');
 
   const prompt = `<edition_settings>
@@ -201,6 +216,10 @@ Adapt this text. Return exactly ${paragraphs.length} paragraphs.${asks ? `\n${as
   return {
     usage,
     part: {
+      moments: o.moments
+        .filter((m) => m.paragraph >= 1 && m.paragraph <= idx.length)
+        .slice(0, wanted)
+        .map((m) => ({ index: idx[m.paragraph - 1], scene: m.scene, characters: m.characters, alt: m.alt })),
       paragraphs: o.paragraphs.map((p, k) => cleanInline(p) || paragraphs[k]),
       changeNotes: o.changeNotes,
       names: o.names,
@@ -209,6 +228,20 @@ Adapt this text. Return exactly ${paragraphs.length} paragraphs.${asks ? `\n${as
       recap: first ? o.recap : null,
     },
   };
+}
+
+/** Share a chapter's picture count across its parts by length, so pictures spread through the chapter. */
+export function picturesForPart(job: ChapterJob, chunks: number[][], ci: number) {
+  const total = job.pictures ?? 0;
+  if (!total) return 0;
+  const words = chunks.map((idx) => idx.reduce((n, i) => n + wordsIn((job.blocks[i] as { html: string }).html), 0));
+  const all = words.reduce((a, b) => a + b, 0) || 1;
+  // Largest-remainder split, so the parts add up to exactly `total`.
+  const raw = words.map((w) => (w / all) * total);
+  const base = raw.map(Math.floor);
+  let left = total - base.reduce((a, b) => a + b, 0);
+  raw.map((r, i) => ({ i, rem: r - base[i] })).sort((a, b) => b.rem - a.rem).forEach(({ i }) => { if (left > 0) { base[i]++; left--; } });
+  return base[ci];
 }
 
 /** The last two adapted paragraphs of a part, for the next part's context. */
@@ -220,6 +253,7 @@ export function assemble(job: ChapterJob, chunks: number[][], parts: PartResult[
   chunks.forEach((idx, ci) => idx.forEach((bi, k) => { (out[bi] as { html: string }).html = parts[ci].paragraphs[k]; }));
   const s = job.settings;
   return {
+    moments: parts.flatMap((p) => p.moments ?? []),
     blocks: out,
     changeNotes: parts.flatMap((p) => p.changeNotes),
     names: [...new Set(parts.flatMap((p) => p.names))],

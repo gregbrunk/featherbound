@@ -31,6 +31,12 @@ export function picturesFor(book: BookSize, density: PictureDensity) {
   return d.perPages ? Math.max(book.chapters, Math.round(pagesOf(book) / d.perPages)) : book.chapters * d.perChapter!;
 }
 
+/** Pictures for one chapter at this density: by length for page densities, fixed for per-chapter ones. */
+export function picturesForChapter(words: number, density: PictureDensity) {
+  const d = DENSITIES.find((x) => x.id === density) ?? DENSITIES[2];
+  return d.perPages ? Math.max(1, Math.round(words / WORDS_PER_PAGE / d.perPages)) : d.perChapter!;
+}
+
 /** Density steps for this book, most to fewest pictures; steps that don't change the count are dropped. */
 export function densityTiers(book: BookSize) {
   const once = book.chapters;
@@ -77,7 +83,8 @@ export function adaptTokens(words: number, chapters: number, bookChapters: numbe
 const PARALLEL_IMAGES = 4;
 const RETRY_BUFFER = 1.08;
 const CHARACTER_SHEETS = 5;
-const RESEARCH = { cost: 0.35, minutes: 3 };
+// Research is one text call that looks at the cover; measured at about $0.05 with Claude Opus 5.5.
+const RESEARCH = { cost: 0.08, minutes: 1 };
 
 function imageCost(count: number, models: ModelChoice) {
   const primary = imageModel(models.images[0]);
@@ -150,3 +157,13 @@ export function estimateRefine(book: BookSize, words: number, chapters: number, 
 
 /** Words a passage refinement shows the model: about seven paragraphs. */
 export const PASSAGE_WORDS = 450;
+
+/** Researching the look and drawing the character sheets, once per illustrated edition. */
+export function estimateArt(models: ModelChoice) {
+  return RESEARCH.cost + imageCost(CHARACTER_SHEETS, models).cost;
+}
+
+/** Redrawing some pictures with the main picture model (plus the usual retry margin). */
+export function estimatePictures(count: number, models: ModelChoice) {
+  return count ? imageCost(count, models).cost : 0.01;
+}

@@ -11,6 +11,7 @@ import type { ChangeNote, SampleComment } from '@/db/schema';
 import { fmtMinutes, money } from '@/lib/estimate';
 import type { Block } from '@/lib/import/types';
 import { approveSamples, resumeRun, rewriteSamples, startSamples } from '../../../books/edition-actions';
+import Sheets, { type SheetView } from './Sheets';
 
 const safeInline = (html: string) => html.replace(/<(?!\/?(em|strong)>|br\s*\/?>)[^>]*>/gi, '');
 const plain = (html: string) => html.replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, '’');
@@ -21,8 +22,8 @@ type Sample = {
 };
 
 /** Shown while a round of samples is being written (or if it failed). Refreshes until it's done. */
-export function SamplesWriting({ bookId, bookTitle, editionName, round, runId, chapters, done, error }: {
-  bookId: string; bookTitle: string; editionName: string; round: number; runId: string; chapters: string[]; done: number; error: string | null;
+export function SamplesWriting({ bookId, bookTitle, editionName, round, runId, chapters, done, error, pictures }: {
+  bookId: string; bookTitle: string; editionName: string; round: number; runId: string; chapters: string[]; done: number; error: string | null; pictures: boolean;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -52,7 +53,8 @@ export function SamplesWriting({ bookId, bookTitle, editionName, round, runId, c
             <h2>{round > 1 ? 'Rewriting the samples with your notes…' : 'Writing your sample chapters…'}</h2>
             <p className="muted">{chapters.join(' and ').replace(/^./, (c) => c.toUpperCase())} of <em>{bookTitle}</em>, {editionName.toLowerCase()}.</p>
             <div className="progress-bar" style={{ width: 260 }}><i className="indeterminate" /></div>
-            <p className="small faint">{done} of {chapters.length} done. Usually a few minutes. You can leave this page; I’ll put a note on your library when they’re ready.</p>
+            {pictures && <p className="small muted">{done < chapters.length ? 'Then' : 'Now'} I’ll look up how the book should look and draw the main characters for you to check.</p>}
+            <p className="small faint">{done} of {chapters.length} chapters done. Usually a few minutes. You can leave this page; I’ll put a note on your library when they’re ready.</p>
           </>
         )}
       </div>
@@ -60,7 +62,7 @@ export function SamplesWriting({ bookId, bookTitle, editionName, round, runId, c
   );
 }
 
-export default function SampleReview({ bookId, bookTitle, edition, run, samples, chapters, estimate, picturesLater }: {
+export default function SampleReview({ bookId, bookTitle, edition, run, samples, chapters, estimate, pictures }: {
   bookId: string;
   bookTitle: string;
   edition: { id: string; name: string; status: string; cap: number; guidance: string[] };
@@ -68,7 +70,7 @@ export default function SampleReview({ bookId, bookTitle, edition, run, samples,
   samples: Sample[];
   chapters: { id: string; label: string }[];
   estimate: { total: number; minutes: number; samples: number; cap: number };
-  picturesLater: boolean;
+  pictures: { look: string | null; error: string | null; sheets: SheetView[] } | null;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState(samples[0]?.sectionId ?? '');
@@ -84,6 +86,7 @@ export default function SampleReview({ bookId, bookTitle, edition, run, samples,
   const softRef = useRef<HTMLDivElement>(null);
   const sample = samples.find((s) => s.sectionId === tab) ?? samples[0];
   const decided = edition.status !== 'samples-ready';
+  const sheetsPending = pictures ? !pictures.sheets.length || pictures.sheets.some((x) => x.status !== 'approved') : false;
 
   if (!sample) return <main className="page"><p>No samples yet.</p></main>;
   const chComments = comments.filter((c) => c.sectionId === sample.sectionId);
@@ -131,6 +134,8 @@ export default function SampleReview({ bookId, bookTitle, edition, run, samples,
           <Guide pose="read" size={64}>Read them side by side. <strong>Highlight any words</strong> in my version to leave a comment. When you’re happy, I’ll do the whole book.</Guide>
         </div>
       </div>
+
+      {pictures && !decided && <div style={{ marginTop: 18 }}><Sheets bookId={bookId} look={pictures.look} error={pictures.error} sheets={pictures.sheets} /></div>}
 
       <div className="sample-toolbar">
         <div className="sample-tabs" role="tablist">
@@ -235,13 +240,14 @@ export default function SampleReview({ bookId, bookTitle, edition, run, samples,
                     <span className="hint" style={{ flex: 1, minWidth: 150 }}>I’ll pause and ask before going past it.</span>
                   </div>
                 </div>
-                <button className="btn btn-primary" disabled={busy} onClick={() => act(() => approveSamples(edition.id, run.id, feedback(), cap))}>
+                {sheetsPending && <p className="tiny muted">Approve every character above first, so all the pictures match.</p>}
+                <button className="btn btn-primary" disabled={busy || sheetsPending} onClick={() => act(() => approveSamples(edition.id, run.id, feedback(), cap))}>
                   <Icon name="check" size={18} /> {busy ? 'Starting…' : 'Looks great: write the whole book'}
                 </button>
                 <p className="tiny muted center">
                   Full book: ~{money(estimate.total)} · about {fmtMinutes(Math.max(5, estimate.minutes))}.
                   {comments.length || general.trim() ? ' Your notes here will guide every chapter.' : ' These sample chapters are kept as they are.'}
-                  {picturesLater ? ' Pictures come in a later update.' : ''}
+                  {pictures ? ' Includes the pictures.' : ''}
                 </p>
                 {message && <p className="small status-bad">{message}</p>}
               </div>

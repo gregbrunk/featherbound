@@ -5,16 +5,17 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { resumeHook, start } from 'workflow/api';
 import { getDb } from '@/db';
-import { bookAnalyses, editionRuns, editions, type SampleComment, type VersionLevel } from '@/db/schema';
+import { bookAnalyses, characterSheets, editionRuns, editions, type PictureOp, type SampleComment, type VersionLevel } from '@/db/schema';
 import { guidanceFrom } from '@/lib/adapt';
 import { NoKeyError, getModelChoices, getTextModel } from '@/lib/ai';
 import { getEdition, getLatestAnalysis, getReadyAnalysis, getStoryBible, hardestSectionId, listSectionAnalyses } from '@/lib/analysis';
 import { editionName, editionSettingsSchema, type EditionSettings } from '@/lib/editions';
-import { PASSAGE_WORDS, estimateEdition, estimateRefine, estimateSamples } from '@/lib/estimate';
+import { PASSAGE_WORDS, estimateArt, estimateEdition, estimatePictures, estimateRefine, estimateSamples } from '@/lib/estimate';
 import { getBook, listSections } from '@/lib/library';
-import { getRun, getVersion, latestRun } from '@/lib/runs';
+import { getRun, getSheet, getVersion, latestRun, listSheets } from '@/lib/runs';
 import { requireAccount } from '@/lib/session';
-import { adaptEdition, type CapDecision } from '@/workflows/adapt-edition';
+import { ownsPath } from '@/lib/storage';
+import { adaptEdition, redrawSheet, type CapDecision } from '@/workflows/adapt-edition';
 import { analyzeBook } from '@/workflows/analyze-book';
 
 /** Start reading the book for its Content Report and Story Bible. The parent has seen the estimate. */
@@ -118,7 +119,10 @@ export async function startSamples(editionId: string, pick?: string[]): Promise<
   if (!sectionIds.length) return { ok: false, message: 'This book has no chapters to sample.' };
 
   const words = chapters.filter((c) => sectionIds.includes(c.id)).reduce((n, c) => n + c.words, 0);
-  const estimate = estimateSamples({ words: book.words, chapters: chapters.length }, words, await getModelChoices(userId), sectionIds.length);
+  const models = await getModelChoices(userId);
+  const settings = editionSettingsSchema.parse(ed.settings);
+  const needsArt = settings.picture.on && !(await listSheets(userId, editionId)).length;
+  const estimate = estimateSamples({ words: book.words, chapters: chapters.length }, words, models, sectionIds.length) + (needsArt ? estimateArt(models) : 0);
   const round = running?.kind === 'samples' ? running.round + 1 : 1;
   const [run] = await getDb()
     .insert(editionRuns)
@@ -167,7 +171,11 @@ export async function approveSamples(editionId: string, runId: string, fb: Feedb
 
   const settings = editionSettingsSchema.parse(ed.settings);
   const chapters = (await listSections(userId, ed.bookId)).filter((s) => s.include);
-  const est = estimateEdition({ words: book.words, chapters: chapters.length }, { ...settings, picture: { ...settings.picture, on: false } }, await getModelChoices(userId));
+  const est = estimateEdition({ words: book.words, chapters: chapters.length }, settings, await getModelChoices(userId));
+  if (settings.picture.on) {
+    const sheets = await listSheets(userId, editionId);
+    if (!sheets.length || sheets.some((x) => x.status !== 'approved')) return { ok: false, message: 'Approve every character sheet first, so the pictures all match.' };
+  }
   const [run] = await getDb()
     .insert(editionRuns)
     .values({ userId, editionId, kind: 'full', sectionIds: chapters.map((c) => c.id), estimateUsd: est.total.toFixed(4), capUsd: cap.toFixed(2) })
@@ -224,7 +232,8 @@ export async function deleteEdition(bookId: string, editionId: string) {
 }
 
 export type RefineInput = {
-  scope: 'whole' | 'chapters' | 'passage';
+  scope: 'whole' | 'chapters' | 'passage' | 'pictures';
+  pictures?: PictureOp[];
   sectionIds: string[];
   passage?: { sectionId: string; index: number };
   guidance: string;
@@ -245,7 +254,7 @@ export async function startRefine(editionId: string, input: RefineInput): Promis
   if (busy && (busy.status === 'running' || busy.status === 'paused-cap')) return { ok: false, message: 'This edition is already being worked on. Wait for that to finish first.' };
 
   const guidance = input.guidance.trim().slice(0, 2000);
-  if (guidance.length < 5) return { ok: false, message: 'Tell me what to change.' };
+  if (input.scope !== 'pictures' && guidance.length < 5) return { ok: false, message: 'Tell me what to change.' };
   if (!['major', 'minor', 'patch'].includes(input.level)) return { ok: false, message: 'Pick a version level.' };
   const version = await getVersion(userId, editionId, ed.currentVersion);
   if (!version) return { ok: false, message: 'The current version is missing.' };
@@ -254,12 +263,23 @@ export async function startRefine(editionId: string, input: RefineInput): Promis
   let sectionIds: string[];
   if (input.scope === 'whole') sectionIds = version.manifest.map((m) => m.sectionId);
   else if (input.scope === 'chapters') sectionIds = input.sectionIds.filter((id) => inVersion.has(id));
-  else sectionIds = input.passage && inVersion.has(input.passage.sectionId) ? [input.passage.sectionId] : [];
-  if (!sectionIds.length) return { ok: false, message: input.scope === 'passage' ? 'Pick the paragraph to change.' : 'Pick at least one chapter.' };
+  else if (input.scope === 'passage') sectionIds = input.passage && inVersion.has(input.passage.sectionId) ? [input.passage.sectionId] : [];
+  else sectionIds = [...new Set((input.pictures ?? []).map((p) => p.sectionId).filter((id) => inVersion.has(id)))];
+  if (!sectionIds.length) return { ok: false, message: input.scope === 'passage' ? 'Pick the paragraph to change.' : input.scope === 'pictures' ? 'Pick a picture to change.' : 'Pick at least one chapter.' };
+
+  let pictureOps: PictureOp[] | undefined;
+  if (input.scope === 'pictures') {
+    pictureOps = (input.pictures ?? []).slice(0, 100).filter((p) => sectionIds.includes(p.sectionId) && ['redraw', 'remove', 'replace'].includes(p.action))
+      .map((p) => ({ sectionId: p.sectionId, imageId: String(p.imageId).slice(0, 80), action: p.action, note: p.note?.slice(0, 500), uploadPath: p.uploadPath }));
+    if (pictureOps.some((p) => p.action === 'replace' && (!p.uploadPath || !ownsPath(userId, p.uploadPath)))) return { ok: false, message: 'That upload isn’t yours.' };
+  }
 
   const sections = await listSections(userId, ed.bookId);
+  const models = await getModelChoices(userId);
   const words = input.scope === 'passage' ? PASSAGE_WORDS : sections.filter((s) => sectionIds.includes(s.id)).reduce((n, s) => n + s.words, 0);
-  const est = estimateRefine({ words: book.words, chapters: book.chapterCount }, words, sectionIds.length, await getModelChoices(userId));
+  const est = input.scope === 'pictures'
+    ? { cost: estimatePictures((pictureOps ?? []).filter((p) => p.action === 'redraw').length, models), minutes: 2 }
+    : estimateRefine({ words: book.words, chapters: book.chapterCount }, words, sectionIds.length, models);
   const cap = Math.round(Number(input.capUsd) * 100) / 100;
   if (!Number.isFinite(cap) || cap < 0.5 || cap > 10_000) return { ok: false, message: 'Pick a cost cap between $0.50 and $10,000.' };
 
@@ -267,7 +287,10 @@ export async function startRefine(editionId: string, input: RefineInput): Promis
     .insert(editionRuns)
     .values({
       userId, editionId, kind: 'refine', sectionIds, estimateUsd: est.cost.toFixed(4), capUsd: cap.toFixed(2),
-      refine: { scope: input.scope, guidance, level: input.level, baseVersion: ed.currentVersion, passage: input.scope === 'passage' ? input.passage : undefined },
+      refine: {
+        scope: input.scope, guidance: guidance || 'Picture changes', level: input.level, baseVersion: ed.currentVersion,
+        passage: input.scope === 'passage' ? input.passage : undefined, pictures: pictureOps,
+      },
     })
     .returning({ id: editionRuns.id });
   const wf = await start(adaptEdition, [userId, editionId, run.id, null]);
@@ -284,5 +307,27 @@ export async function makeVersionCurrent(editionId: string, number: string): Pro
   await getDb().update(editions).set({ currentVersion: number, updatedAt: new Date() }).where(and(eq(editions.userId, userId), eq(editions.id, editionId)));
   revalidatePath(`/editions/${editionId}/history`);
   revalidatePath(`/books/${ed.bookId}`);
+  return { ok: true };
+}
+
+/** The parent is happy with how a character looks. */
+export async function approveSheet(sheetId: string, approved = true): Promise<Result> {
+  const { userId } = await requireAccount();
+  const sheet = await getSheet(userId, sheetId);
+  if (!sheet || (sheet.status !== 'ready' && sheet.status !== 'approved')) return { ok: false, message: 'This sheet isn’t ready yet.' };
+  await getDb().update(characterSheets).set({ status: approved ? 'approved' : 'ready', updatedAt: new Date() }).where(eq(characterSheets.id, sheetId));
+  revalidatePath(`/editions/${sheet.editionId}/samples`);
+  return { ok: true };
+}
+
+/** Draw a character again, optionally with a note ("rounder glasses", "a blue coat"). */
+export async function redrawSheetAction(sheetId: string, note: string): Promise<Result> {
+  const { userId } = await requireAccount();
+  const sheet = await getSheet(userId, sheetId);
+  if (!sheet) return { ok: false, message: 'Sheet not found.' };
+  if (sheet.status === 'drawing') return { ok: true };
+  await getDb().update(characterSheets).set({ status: 'drawing', error: null, updatedAt: new Date() }).where(eq(characterSheets.id, sheetId));
+  await start(redrawSheet, [userId, sheet.editionId, sheetId, note.trim().slice(0, 500) || null]);
+  revalidatePath(`/editions/${sheet.editionId}/samples`);
   return { ok: true };
 }

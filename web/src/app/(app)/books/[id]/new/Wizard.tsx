@@ -12,7 +12,7 @@ import {
   AGE_BANDS, ART_STYLES, CATEGORIES, LEVEL_LABEL, bandFor, defaultFilters, defaultSettings, editionName, gradeLevelFor,
   type EditionSettings, type FilterLevel,
 } from '@/lib/editions';
-import { defaultCap, densityLabel, densityTiers, estimateEdition, fmtMinutes, money, type BookSize, type ModelChoice } from '@/lib/estimate';
+import { defaultCap, densityLabel, densityTiers, estimateArt, estimateEdition, fmtMinutes, money, type BookSize, type ModelChoice } from '@/lib/estimate';
 import { imageModel, textModel } from '@/lib/models';
 import { saveDraftEdition } from '../../edition-actions';
 
@@ -46,8 +46,8 @@ export default function Wizard({ book, heat, analysed, seriesName, models, start
 
   const est = estimateEdition(book, s, models);
   const capValue = cap ?? defaultCap(est.total);
-  // Pictures are drawn from Phase 6 on; until then samples are text only.
-  const textSamples = estimateEdition(book, { ...s, picture: { ...s.picture, on: false } }, models).samples;
+  // Samples are text, plus the look research and character sheets when Picture Book mode is on.
+  const textSamples = estimateEdition(book, { ...s, picture: { ...s.picture, on: false } }, models).samples + (s.picture.on ? estimateArt(models) : 0);
   const set = (patch: Partial<EditionSettings>) => setS((prev) => ({ ...prev, ...patch }));
   const cur = STEPS[step];
 
@@ -238,9 +238,9 @@ export default function Wizard({ book, heat, analysed, seriesName, models, start
                     </div>
                   </div>
                   <div className="est-lines">
-                    <div><span>Sample chapters (next step)</span><strong>~{money(textSamples)}</strong></div>
+                    <div><span>Sample chapters (next step){s.picture.on ? ', plus the look and character sheets' : ''}</span><strong>~{money(textSamples)}</strong></div>
                     <div><span>Text · {textModel(models.text).name} · ~{(est.tokensIn / 1e6).toFixed(2)}M in / {(est.tokensOut / 1e6).toFixed(2)}M out tokens · ~{fmtMinutes(est.textMinutes)}</span><strong>~{money(est.text)}</strong></div>
-                    {s.picture.on && <div><span>Pictures · {imageModel(models.images[0]).name} · research, 5 character sheets + ~{est.images} illustrations · ~{fmtMinutes(est.imageMinutes)} · drawn in a coming update</span><strong>~{money(est.imageCost)}</strong></div>}
+                    {s.picture.on && <div><span>Pictures · {imageModel(models.images[0]).name} · research, 5 character sheets + ~{est.images} illustrations · ~{fmtMinutes(est.imageMinutes)}</span><strong>~{money(est.imageCost)}</strong></div>}
                     {s.picture.on && est.imageWorst > est.imageCost * 1.05 && <div className="faint"><span>If every picture fell back to the priciest backup model</span><span>up to ~{money(est.totalWorst)}</span></div>}
                   </div>
                   <div className="field" style={{ marginTop: 6 }}>

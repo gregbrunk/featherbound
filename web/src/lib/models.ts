@@ -25,6 +25,8 @@ export type TextModel = {
 export type ImageModel = {
   id: string; directId: string; name: string; provider: ModelProvider;
   perImage: number; seconds: number; bookArt: number; consistency: number; strictness: Strictness; note: string;
+  /** How the model is called: generateImage, or generateText returning image files (Nano Banana). */
+  api: 'image' | 'text';
 };
 
 export const TEXT_MODELS: TextModel[] = [
@@ -35,12 +37,12 @@ export const TEXT_MODELS: TextModel[] = [
 ];
 
 export const IMAGE_MODELS: ImageModel[] = [
-  { id: 'openai/gpt-image-2', directId: 'gpt-image-2', name: 'GPT Image 2', provider: 'openai', perImage: 0.054, seconds: 30, bookArt: 5, consistency: 5, strictness: 'strict', note: 'Best match to a book’s art and most consistent characters. Refuses well-known copyrighted characters.' },
-  { id: 'google/gemini-3.1-flash-image', directId: 'gemini-3.1-flash-image', name: 'Nano Banana 2', provider: 'google', perImage: 0.068, seconds: 16, bookArt: 4, consistency: 4, strictness: 'medium', note: 'Close second and fast. Draws copyrighted characters. Can copy an artist’s signature.' },
-  { id: 'spacexai/grok-imagine-image-2.0', directId: 'grok-imagine-image-2.0', name: 'Grok Imagine 2.0', provider: 'xai', perImage: 0.08, seconds: 13, bookArt: 3, consistency: 4, strictness: 'loose', note: 'Loosest filters tested: drew every scene and both Harry Potter tests. Clean ink style, less true to the book’s art.' },
-  { id: 'google/gemini-3-pro-image', directId: 'gemini-3-pro-image', name: 'Nano Banana Pro', provider: 'google', perImage: 0.141, seconds: 26, bookArt: 3, consistency: 2, strictness: 'medium', note: 'Characters drift between pictures. Not recommended.' },
-  { id: 'bfl/flux-2-klein-9b', directId: 'flux-2-klein-9b', name: 'FLUX.2 klein 9B (open weights)', provider: 'bfl', perImage: 0.029, seconds: 5, bookArt: 2, consistency: 2, strictness: 'strict', note: 'Cheap, but the hosted version’s filter blocks many children’s-book scenes. Gateway only.' },
-  { id: 'bytedance/seedream-5.0-pro', directId: 'seedream-5.0-pro', name: 'Seedream 5.0 Pro', provider: 'bytedance', perImage: 0.035, seconds: 128, bookArt: 2, consistency: 4, strictness: 'strict', note: 'Cheapest, but slow, over-polished and watermarked. Gateway only.' },
+  { id: 'openai/gpt-image-2', api: 'image', directId: 'gpt-image-2', name: 'GPT Image 2', provider: 'openai', perImage: 0.054, seconds: 30, bookArt: 5, consistency: 5, strictness: 'strict', note: 'Best match to a book’s art and most consistent characters. Refuses well-known copyrighted characters.' },
+  { id: 'google/gemini-3.1-flash-image', api: 'text', directId: 'gemini-3.1-flash-image', name: 'Nano Banana 2', provider: 'google', perImage: 0.068, seconds: 16, bookArt: 4, consistency: 4, strictness: 'medium', note: 'Close second and fast. Draws copyrighted characters. Can copy an artist’s signature.' },
+  { id: 'spacexai/grok-imagine-image-2.0', api: 'image', directId: 'grok-imagine-image-2.0', name: 'Grok Imagine 2.0', provider: 'xai', perImage: 0.08, seconds: 13, bookArt: 3, consistency: 4, strictness: 'loose', note: 'Loosest filters tested: drew every scene and both Harry Potter tests. Clean ink style, less true to the book’s art.' },
+  { id: 'google/gemini-3-pro-image', api: 'text', directId: 'gemini-3-pro-image', name: 'Nano Banana Pro', provider: 'google', perImage: 0.141, seconds: 26, bookArt: 3, consistency: 2, strictness: 'medium', note: 'Characters drift between pictures. Not recommended.' },
+  { id: 'bfl/flux-2-klein-9b', api: 'image', directId: 'flux-2-klein-9b', name: 'FLUX.2 klein 9B (open weights)', provider: 'bfl', perImage: 0.029, seconds: 5, bookArt: 2, consistency: 2, strictness: 'strict', note: 'Cheap, but the hosted version’s filter blocks many children’s-book scenes. Gateway only.' },
+  { id: 'bytedance/seedream-5.0-pro', api: 'image', directId: 'seedream-5.0-pro', name: 'Seedream 5.0 Pro', provider: 'bytedance', perImage: 0.035, seconds: 128, bookArt: 2, consistency: 4, strictness: 'strict', note: 'Cheapest, but slow, over-polished and watermarked. Gateway only.' },
 ];
 
 export const DEFAULT_MODELS = {

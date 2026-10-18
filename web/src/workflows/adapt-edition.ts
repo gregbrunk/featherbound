@@ -3,7 +3,7 @@ import { and, asc, eq, sql } from 'drizzle-orm';
 import { createHook, FatalError } from 'workflow';
 import { z } from 'zod';
 import { getDb } from '@/db';
-import { editionChapters, editionRuns, editions, editionVersions, type ChangeNote } from '@/db/schema';
+import { characterSheets, editionChapters, editionRuns, editions, editionVersions, illustrations, series, type ArtDirection, type ChangeNote } from '@/db/schema';
 import { AlignmentError, adaptPart, assemble, bibleText, blockWords, chunkIndexes, tailOf, type ChapterJob, type PartResult } from '@/lib/adapt';
 import { NoKeyError, getTextModel, recordAiCall } from '@/lib/ai';
 import { getReadyAnalysis, getStoryBible, listSectionAnalyses } from '@/lib/analysis';
@@ -12,7 +12,12 @@ import type { Block } from '@/lib/import/types';
 import { getBook, listSections } from '@/lib/library';
 import { textCostUsd } from '@/lib/models';
 import { nextFreeVersion, passageWindow, refinePart, type RefineJob, type RefinePartResult } from '@/lib/refine';
-import { readJson, writeContentAddressed } from '@/lib/storage';
+import { checkOriginalPicture, researchLook, scenePrompt, sheetPrompt } from '@/lib/art';
+import { picturesForChapter } from '@/lib/estimate';
+import { sniffImage } from '@/lib/export/xhtml';
+import { AllRefused, drawWithChain, type DrawRequest } from '@/lib/images';
+import { getModelChoices } from '@/lib/ai';
+import { paths, readBlob, readJson, writeContentAddressed, writeFile } from '@/lib/storage';
 
 // Writes an edition: a round of sample chapters, or the whole book. Chapters run a few at a
 // time; each ~2,000-word part of a chapter is its own durable step, so a long chapter never
@@ -43,7 +48,13 @@ export async function adaptEdition(userId: string, editionId: string, runId: str
           continue;
         }
       }
-      await Promise.all(batch.map((c) => (plan.kind === 'refine' ? refineChapter(userId, editionId, runId, c.sectionId) : writeChapter(userId, editionId, runId, c.sectionId, null))));
+      await Promise.all(batch.map(async (c) => {
+        if (plan.kind === 'refine') {
+          return plan.refineScope === 'pictures' ? repictureChapter(userId, editionId, runId, c.sectionId) : refineChapter(userId, editionId, runId, c.sectionId);
+        }
+        await writeChapter(userId, editionId, runId, c.sectionId, null);
+        if (plan.kind === 'full' && plan.pictures) await illustrateChapter(userId, editionId, runId, c.sectionId);
+      }));
       i += BATCH;
     }
 
@@ -53,6 +64,14 @@ export async function adaptEdition(userId: string, editionId: string, runId: str
     }
 
     if (plan.kind === 'samples') {
+      // Picture Book mode: research the look and draw character sheets for approval with the samples.
+      if (plan.pictures) {
+        try {
+          await prepareArt(userId, editionId, runId);
+        } catch (e) {
+          await markArtFailed(editionId, e instanceof Error ? e.message : String(e));
+        }
+      }
       await finishSamples(editionId, runId);
       return { ok: true as const };
     }
@@ -62,6 +81,7 @@ export async function adaptEdition(userId: string, editionId: string, runId: str
       const gate = await checkCap(runId, f.words, plan.ratePerWord);
       if (!gate.ok) break;
       await writeChapter(userId, editionId, runId, f.sectionId, f.reason);
+      if (plan.pictures) await illustrateChapter(userId, editionId, runId, f.sectionId);
     }
     await publishFirstVersion(userId, editionId, runId);
     return { ok: true as const };
@@ -125,7 +145,7 @@ async function planRun(userId: string, editionId: string, runId: string, reuseFr
       .map((c) => ({
         userId: c.userId, editionId: c.editionId, runId, sectionId: c.sectionId, position: c.position, title: c.title, kidTitle: c.kidTitle,
         recap: c.recap, textPath: c.textPath, words: c.words, originalWords: c.originalWords, changeNotes: c.changeNotes,
-        summary: c.summary, names: c.names, fixNote: c.fixNote, costUsd: c.costUsd,
+        summary: c.summary, names: c.names, fixNote: c.fixNote, costUsd: c.costUsd, moments: c.moments,
       }));
     if (copies.length) await db.insert(editionChapters).values(copies);
   }
@@ -145,7 +165,8 @@ async function planRun(userId: string, editionId: string, runId: string, reuseFr
     .where(eq(editions.id, editionId));
 
   const totalWords = run.sectionIds.reduce((n, id) => n + (words.get(id) ?? 0), 0);
-  return { kind: run.kind, todo, ratePerWord: Number(run.estimateUsd) / Math.max(1, totalWords) };
+  const pictures = editionSettingsSchema.parse(ed.settings).picture.on;
+  return { kind: run.kind, refineScope: run.refine?.scope ?? null, todo, pictures, ratePerWord: Number(run.estimateUsd) / Math.max(1, totalWords) };
 }
 
 /** Will the next chapters fit under the cap? Uses this run's actual cost per word once it has one. */
@@ -214,6 +235,7 @@ async function prepareChapter(userId: string, editionId: string, runId: string, 
     chapterSummary: summaries.get(section.id) ?? '',
     blocks,
     fix: fix ?? undefined,
+    pictures: settings.picture.on ? picturesForChapter(section.words, settings.picture.density) : 0,
   };
   return { job, chunks: chunkIndexes(blocks), position: section.position };
 }
@@ -255,7 +277,7 @@ async function saveChapter(userId: string, editionId: string, runId: string, sec
     userId, editionId, runId, sectionId, position,
     title: job.title, kidTitle: r.kidTitle, recap: r.recap, textPath,
     words: r.words, originalWords: r.originalWords,
-    changeNotes: r.changeNotes as ChangeNote[], summary: r.summary, names: r.names, fixNote: fix,
+    changeNotes: r.changeNotes as ChangeNote[], summary: r.summary, names: r.names, fixNote: fix, moments: r.moments,
     costUsd: parts.reduce((n, p) => n + p.cost, 0).toFixed(6),
   };
   const [have] = await db.select({ id: editionChapters.id }).from(editionChapters).where(and(eq(editionChapters.runId, runId), eq(editionChapters.sectionId, sectionId))).limit(1);
@@ -524,4 +546,318 @@ async function publishRefinedVersion(userId: string, editionId: string, runId: s
   });
   await db.update(editionRuns).set({ status: 'ready', stage: null, finishedAt: new Date() }).where(eq(editionRuns.id, runId));
   await db.update(editions).set({ status: 'ready', currentVersion: number, notice: 'ready', noticeAt: new Date(), updatedAt: new Date() }).where(eq(editions.id, editionId));
+}
+
+// ── Pictures ─────────────────────────────────────────────────────────────────────────
+
+/** Research the look, then draw every character sheet at once. */
+async function prepareArt(userId: string, editionId: string, runId: string) {
+  const sheetIds = await researchArt(userId, editionId, runId);
+  await Promise.all(sheetIds.map((id) => drawSheet(userId, editionId, runId, id, null)));
+}
+
+/** Redraw one character sheet, optionally with a note from the parent. */
+export async function redrawSheet(userId: string, editionId: string, sheetId: string, note: string | null) {
+  'use workflow';
+  await drawSheet(userId, editionId, null, sheetId, note);
+}
+
+/** Pick and draw a chapter's pictures, check the book's own ones, then put them in the text. */
+async function illustrateChapter(userId: string, editionId: string, runId: string, sectionId: string) {
+  const plan = await planChapterPictures(userId, editionId, runId, sectionId);
+  if (!plan) return;
+  const results: PlacedPicture[] = [];
+  for (const o of plan.originals) {
+    const verdict = await checkOriginal(userId, editionId, runId, o.imageId, o.alt);
+    if (verdict.verdict === 'keep') continue;
+    if (verdict.verdict === 'remove') { results.push({ kind: 'remove', index: o.index }); continue; }
+    const drawn = await drawScene(userId, editionId, runId, sectionId, { index: o.index, scene: verdict.scene, characters: [], alt: o.alt }, 'redrawn-original');
+    results.push(drawn ? { kind: 'replace', index: o.index, imageId: drawn.imageId, cost: drawn.cost } : { kind: 'remove', index: o.index });
+  }
+  for (const m of plan.todo) {
+    const drawn = await drawScene(userId, editionId, runId, sectionId, m, 'drawn');
+    if (drawn) results.push({ kind: 'insert', index: m.index, imageId: drawn.imageId, alt: m.alt, cost: drawn.cost });
+  }
+  if (results.length) await placePictures(userId, editionId, runId, sectionId, results);
+}
+
+type PlacedPicture =
+  | { kind: 'insert'; index: number; imageId: string; alt: string; cost: number }
+  | { kind: 'replace'; index: number; imageId: string; cost: number }
+  | { kind: 'remove'; index: number };
+
+const STYLE_REFS = 2;
+
+async function researchArt(userId: string, editionId: string, runId: string): Promise<string[]> {
+  'use step';
+  const db = getDb();
+  const [ed] = await db.select().from(editions).where(eq(editions.id, editionId)).limit(1);
+  const existing = await db.select().from(characterSheets).where(eq(characterSheets.editionId, editionId));
+  // Already researched (e.g. a later round of samples): only draw sheets that still need it.
+  if (ed.art && !ed.art.error && existing.length) return existing.filter((s) => s.status === 'drawing' || s.status === 'failed').map((s) => s.id);
+
+  const book = (await getBook(userId, ed.bookId))!;
+  const [bible, seriesRow] = await Promise.all([
+    getStoryBible(userId, ed.bookId),
+    book.seriesId ? db.select().from(series).where(eq(series.id, book.seriesId)).limit(1).then((r) => r[0]) : null,
+  ]);
+  if (!bible) throw new FatalError('Read the book through first, so I know its characters.');
+
+  // References: the cover, then the book's own first few pictures.
+  const refPaths: string[] = [];
+  if (book.coverPath) refPaths.push(book.coverPath);
+  for (const s of (await listSections(userId, ed.bookId)).filter((x) => x.include)) {
+    if (refPaths.length >= STYLE_REFS + 2) break;
+    const { blocks } = await readJson<{ blocks: Block[] }>(s.textPath);
+    for (const b of blocks) if (b.type === 'img' && refPaths.length < STYLE_REFS + 2) refPaths.push(paths.bookFile(userId, ed.bookId, `images/${b.imageId}`));
+  }
+  const images = (await Promise.all(refPaths.map((p) => readBlob(p).catch(() => null)))).filter((x): x is Uint8Array => x !== null);
+
+  const model = await getTextModel(userId).catch((e) => { throw e instanceof NoKeyError ? new FatalError(e.message) : e; });
+  const settings = editionSettingsSchema.parse(ed.settings);
+  const { result, usage } = await researchLook(model.model, { title: book.title, author: book.author, settings, bible: bible.data, series: seriesRow?.visualDirection, images });
+  const cost = textCostUsd(model.modelId, usage.inputTokens, usage.outputTokens);
+  await recordAiCall({ userId, runId, kind: 'art-research', model: model.modelId, keySource: model.keySource, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, costUsd: cost, ms: usage.ms });
+  await db.update(editionRuns).set({ spentUsd: sql`${editionRuns.spentUsd} + ${cost.toFixed(6)}` }).where(eq(editionRuns.id, runId));
+
+  const art: ArtDirection = { ...result.art, references: refPaths.slice(0, STYLE_REFS + 1), researchedAt: new Date().toISOString() };
+  await db.update(editions).set({ art }).where(eq(editions.id, editionId));
+  if (seriesRow) await db.update(series).set({ visualDirection: art }).where(eq(series.id, seriesRow.id));
+  await db.delete(characterSheets).where(eq(characterSheets.editionId, editionId));
+  const rows = await db
+    .insert(characterSheets)
+    .values(result.characters.map((c, i) => ({ userId, editionId, name: c.name, description: c.description, position: i })))
+    .returning({ id: characterSheets.id });
+  return rows.map((r) => r.id);
+}
+
+async function markArtFailed(editionId: string, error: string) {
+  'use step';
+  const [ed] = await getDb().select({ art: editions.art }).from(editions).where(eq(editions.id, editionId)).limit(1);
+  const art: ArtDirection = ed?.art ?? { look: '', options: [], style: '', palette: '', references: [], researchedAt: new Date().toISOString() };
+  await getDb().update(editions).set({ art: { ...art, error: error.slice(0, 300) } }).where(eq(editions.id, editionId));
+}
+
+async function loadRefs(pathsList: string[]) {
+  return (await Promise.all(pathsList.map((p) => readBlob(p).catch(() => null)))).filter((x): x is Uint8Array => x !== null);
+}
+
+async function drawSheet(userId: string, editionId: string, runId: string | null, sheetId: string, note: string | null) {
+  'use step';
+  const db = getDb();
+  const [sheet] = await db.select().from(characterSheets).where(eq(characterSheets.id, sheetId)).limit(1);
+  const [ed] = await db.select().from(editions).where(eq(editions.id, editionId)).limit(1);
+  if (!sheet || !ed?.art) throw new FatalError('Nothing to draw.');
+  await db.update(characterSheets).set({ status: 'drawing', error: null, note, updatedAt: new Date() }).where(eq(characterSheets.id, sheetId));
+  const settings = editionSettingsSchema.parse(ed.settings);
+  const chain = (await getModelChoices(userId)).images;
+  const req: DrawRequest = { prompt: sheetPrompt(settings, ed.art, sheet, note), references: await loadRefs(ed.art.references), aspect: '3:2' };
+  try {
+    const d = await drawWithChain(userId, runId ?? undefined, chain, Math.max(0, sheet.stickyModel ? chain.indexOf(sheet.stickyModel) : 0), req, 'character-sheet');
+    const imageId = `sheet_${crypto.randomUUID()}`;
+    await writeFile(paths.bookFile(userId, ed.bookId, `images/${imageId}`), d.bytes, d.mediaType);
+    await db.update(characterSheets).set({
+      status: 'ready', imageId, model: d.model, stickyModel: d.model !== chain[0] ? d.model : sheet.stickyModel,
+      costUsd: sql`${characterSheets.costUsd} + ${d.cost.toFixed(6)}`, updatedAt: new Date(),
+    }).where(eq(characterSheets.id, sheetId));
+    if (runId) await db.update(editionRuns).set({ spentUsd: sql`${editionRuns.spentUsd} + ${d.cost.toFixed(6)}` }).where(eq(editionRuns.id, runId));
+  } catch (e) {
+    if (!(e instanceof AllRefused)) throw e;
+    await db.update(characterSheets).set({ status: 'failed', error: e.message.slice(0, 300), updatedAt: new Date() }).where(eq(characterSheets.id, sheetId));
+  }
+}
+drawSheet.maxRetries = 1;
+
+type Moment = { index: number; scene: string; characters: string[]; alt: string };
+
+async function planChapterPictures(userId: string, editionId: string, runId: string, sectionId: string) {
+  'use step';
+  const db = getDb();
+  const [chapter] = await db.select().from(editionChapters).where(and(eq(editionChapters.runId, runId), eq(editionChapters.sectionId, sectionId))).limit(1);
+  if (!chapter) return null;
+  const done = await db.select({ scene: illustrations.scene }).from(illustrations).where(and(eq(illustrations.runId, runId), eq(illustrations.sectionId, sectionId)));
+  const drawnScenes = new Set(done.map((d) => d.scene));
+  const { blocks } = await readJson<{ blocks: Block[] }>(chapter.textPath);
+  // The book's own pictures (not ones we drew) get checked against the filters, once.
+  const originals = done.length ? [] : blocks.flatMap((b, index) => (b.type === 'img' && !b.imageId.startsWith('ill_') ? [{ index, imageId: b.imageId, alt: b.alt }] : []));
+  return { todo: chapter.moments.filter((m) => !drawnScenes.has(m.scene)) as Moment[], originals };
+}
+
+async function checkOriginal(userId: string, editionId: string, runId: string, imageId: string, alt: string) {
+  'use step';
+  const [ed] = await getDb().select().from(editions).where(eq(editions.id, editionId)).limit(1);
+  const bytes = await readBlob(paths.bookFile(userId, ed.bookId, `images/${imageId}`)).catch(() => null);
+  if (!bytes) return { verdict: 'keep' as const, scene: '', reason: 'missing' };
+  const model = await getTextModel(userId).catch((e) => { throw e instanceof NoKeyError ? new FatalError(e.message) : e; });
+  const { check, usage } = await checkOriginalPicture(model.model, editionSettingsSchema.parse(ed.settings), bytes, alt);
+  const cost = textCostUsd(model.modelId, usage.inputTokens, usage.outputTokens);
+  await recordAiCall({ userId, runId, kind: 'art-check', model: model.modelId, keySource: model.keySource, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, costUsd: cost, ms: usage.ms });
+  await getDb().update(editionRuns).set({ spentUsd: sql`${editionRuns.spentUsd} + ${cost.toFixed(6)}` }).where(eq(editionRuns.id, runId));
+  return check;
+}
+
+/** Draw one scene down the model chain. Characters who needed a backup model stay on it. */
+async function drawScene(userId: string, editionId: string, runId: string, sectionId: string, m: Moment, source: 'drawn' | 'redrawn-original') {
+  'use step';
+  const db = getDb();
+  const [ed] = await db.select().from(editions).where(eq(editions.id, editionId)).limit(1);
+  if (!ed.art) return null;
+  const settings = editionSettingsSchema.parse(ed.settings);
+  const sheets = await db.select().from(characterSheets).where(eq(characterSheets.editionId, editionId));
+  const named = (n: string) => sheets.find((s) => s.name.toLowerCase() === n.toLowerCase() || n.toLowerCase().includes(s.name.toLowerCase()) || s.name.toLowerCase().includes(n.toLowerCase()));
+  const cast = [...new Set(m.characters.map(named).filter((s): s is (typeof sheets)[number] => Boolean(s)))];
+  const chain = (await getModelChoices(userId)).images;
+  const startAt = Math.max(0, ...cast.map((c) => (c.stickyModel ? chain.indexOf(c.stickyModel) : 0)));
+  const sheetPaths = cast.filter((c) => c.imageId).slice(0, 3).map((c) => paths.bookFile(userId, ed.bookId, `images/${c.imageId}`));
+  const req: DrawRequest = {
+    prompt: scenePrompt(settings, ed.art, m.scene, cast.map((c) => ({ name: c.name, description: c.description }))),
+    references: await loadRefs([...sheetPaths, ...ed.art.references.slice(0, 1)]),
+    aspect: '4:3',
+  };
+  try {
+    const d = await drawWithChain(userId, runId, chain, startAt, req);
+    const imageId = `ill_${crypto.randomUUID()}`;
+    await writeFile(paths.bookFile(userId, ed.bookId, `images/${imageId}`), d.bytes, d.mediaType);
+    await db.insert(illustrations).values({
+      id: imageId, userId, editionId, sectionId, runId, source, scene: m.scene, alt: m.alt, characters: cast.map((c) => c.name),
+      model: d.model, refusedBy: d.refusedBy, costUsd: d.cost.toFixed(6),
+    });
+    await db.update(editionRuns).set({ spentUsd: sql`${editionRuns.spentUsd} + ${d.cost.toFixed(6)}` }).where(eq(editionRuns.id, runId));
+    // Stickiness: once a character needed a backup model, their later pictures start there.
+    const used = chain.indexOf(d.model);
+    for (const c of cast) {
+      if (used > (c.stickyModel ? chain.indexOf(c.stickyModel) : 0)) await db.update(characterSheets).set({ stickyModel: d.model }).where(eq(characterSheets.id, c.id));
+    }
+    return { imageId, cost: d.cost };
+  } catch (e) {
+    if (e instanceof AllRefused) return null; // the chapter just has one picture fewer
+    throw e;
+  }
+}
+drawScene.maxRetries = 1;
+
+async function placePictures(userId: string, editionId: string, runId: string, sectionId: string, placed: PlacedPicture[]) {
+  'use step';
+  const db = getDb();
+  const [chapter] = await db.select().from(editionChapters).where(and(eq(editionChapters.runId, runId), eq(editionChapters.sectionId, sectionId))).limit(1);
+  const { title, blocks } = await readJson<{ title: string; blocks: Block[] }>(chapter.textPath);
+  const out = [...blocks];
+  // From the end backwards, so earlier indexes stay valid while inserting.
+  for (const p of [...placed].sort((a, b) => b.index - a.index)) {
+    if (p.kind === 'remove') { if (out[p.index]?.type === 'img') out.splice(p.index, 1); continue; }
+    if (p.kind === 'replace') { const b = out[p.index]; if (b?.type === 'img') out[p.index] = { ...b, imageId: p.imageId }; continue; }
+    out.splice(p.index + 1, 0, { type: 'img', imageId: p.imageId, alt: p.alt });
+  }
+  const textPath = await writeContentAddressed(userId, { title, blocks: out });
+  const cost = placed.reduce((n, p) => n + ('cost' in p ? p.cost : 0), 0);
+  await db.update(editionChapters).set({ textPath, costUsd: sql`${editionChapters.costUsd} + ${cost.toFixed(6)}` }).where(eq(editionChapters.id, chapter.id));
+}
+
+// ── Picture changes (Refine → Pictures) ─────────────────────────────────────────────
+
+type PictureSwap = { imageId: string; next: string | null; cost: number };
+
+/** Redraw, replace or remove chosen pictures in one chapter of the base version. */
+async function repictureChapter(userId: string, editionId: string, runId: string, sectionId: string) {
+  const ops = await pictureOpsFor(runId, sectionId);
+  if (!ops) return;
+  const swaps: PictureSwap[] = [];
+  for (const op of ops) {
+    if (op.action === 'remove') swaps.push({ imageId: op.imageId, next: null, cost: 0 });
+    else if (op.action === 'replace') swaps.push(await importUpload(userId, editionId, runId, sectionId, op.imageId, op.uploadPath!));
+    else {
+      const r = await redrawPicture(userId, editionId, runId, sectionId, op.imageId, op.note ?? null);
+      if (r) swaps.push(r);
+    }
+  }
+  await savePictureChanges(userId, editionId, runId, sectionId, swaps);
+}
+
+async function pictureOpsFor(runId: string, sectionId: string) {
+  'use step';
+  const db = getDb();
+  const [have] = await db.select({ id: editionChapters.id }).from(editionChapters).where(and(eq(editionChapters.runId, runId), eq(editionChapters.sectionId, sectionId))).limit(1);
+  if (have) return null;
+  const [run] = await db.select().from(editionRuns).where(eq(editionRuns.id, runId)).limit(1);
+  return (run.refine?.pictures ?? []).filter((p) => p.sectionId === sectionId);
+}
+
+async function importUpload(userId: string, editionId: string, runId: string, sectionId: string, imageId: string, uploadPath: string): Promise<PictureSwap> {
+  'use step';
+  if (!uploadPath.startsWith(`accounts/${userId}/`)) throw new FatalError('That upload isn’t yours.');
+  const [ed] = await getDb().select().from(editions).where(eq(editions.id, editionId)).limit(1);
+  const bytes = await readBlob(uploadPath);
+  const type = sniffImage(bytes);
+  if (!type || type.type === 'image/svg+xml') throw new FatalError('The uploaded file isn’t a JPEG, PNG or WebP picture.');
+  const next = `ill_${crypto.randomUUID()}`;
+  await writeFile(paths.bookFile(userId, ed.bookId, `images/${next}`), bytes, type.type);
+  const [old] = await getDb().select().from(illustrations).where(eq(illustrations.id, imageId)).limit(1);
+  await getDb().insert(illustrations).values({ id: next, userId, editionId, sectionId, runId, source: 'uploaded', scene: old?.scene ?? '', alt: old?.alt ?? '', characters: old?.characters ?? [] });
+  return { imageId, next, cost: 0 };
+}
+
+async function redrawPicture(userId: string, editionId: string, runId: string, sectionId: string, imageId: string, note: string | null): Promise<PictureSwap | null> {
+  'use step';
+  const db = getDb();
+  const [ed] = await db.select().from(editions).where(eq(editions.id, editionId)).limit(1);
+  if (!ed.art) throw new FatalError('This edition has no picture style yet.');
+  const settings = editionSettingsSchema.parse(ed.settings);
+  const [old] = await db.select().from(illustrations).where(eq(illustrations.id, imageId)).limit(1);
+  const sheets = await db.select().from(characterSheets).where(eq(characterSheets.editionId, editionId));
+  const cast = sheets.filter((s) => old?.characters.includes(s.name));
+  const chain = (await getModelChoices(userId)).images;
+  const startAt = Math.max(0, ...cast.map((c) => (c.stickyModel ? chain.indexOf(c.stickyModel) : 0)));
+  // Without a recorded scene (one of the book's own pictures), the old picture itself is the reference.
+  const scene = old?.scene || 'Redraw the attached picture in this edition’s style, keeping its moment and composition.';
+  const refs = [
+    ...cast.filter((c) => c.imageId).slice(0, 3).map((c) => paths.bookFile(userId, ed.bookId, `images/${c.imageId}`)),
+    ...(old?.scene ? [] : [paths.bookFile(userId, ed.bookId, `images/${imageId}`)]),
+    ...ed.art.references.slice(0, 1),
+  ];
+  try {
+    const d = await drawWithChain(userId, runId, chain, startAt, {
+      prompt: scenePrompt(settings, ed.art, scene, cast.map((c) => ({ name: c.name, description: c.description })), note),
+      references: await loadRefs(refs),
+      aspect: '4:3',
+    });
+    const next = `ill_${crypto.randomUUID()}`;
+    await writeFile(paths.bookFile(userId, ed.bookId, `images/${next}`), d.bytes, d.mediaType);
+    await db.insert(illustrations).values({
+      id: next, userId, editionId, sectionId, runId, source: 'drawn', scene: old?.scene ?? scene, alt: old?.alt ?? '', characters: old?.characters ?? [],
+      model: d.model, refusedBy: d.refusedBy, costUsd: d.cost.toFixed(6),
+    });
+    await db.update(editionRuns).set({ spentUsd: sql`${editionRuns.spentUsd} + ${d.cost.toFixed(6)}` }).where(eq(editionRuns.id, runId));
+    return { imageId, next, cost: d.cost };
+  } catch (e) {
+    if (e instanceof AllRefused) return null;
+    throw e;
+  }
+}
+redrawPicture.maxRetries = 1;
+
+async function savePictureChanges(userId: string, editionId: string, runId: string, sectionId: string, swaps: PictureSwap[]) {
+  'use step';
+  const db = getDb();
+  const [run] = await db.select().from(editionRuns).where(eq(editionRuns.id, runId)).limit(1);
+  const [version] = await db.select().from(editionVersions).where(and(eq(editionVersions.editionId, editionId), eq(editionVersions.number, run.refine!.baseVersion))).limit(1);
+  const entry = version?.manifest.find((m) => m.sectionId === sectionId);
+  const [base] = entry ? await db.select().from(editionChapters).where(eq(editionChapters.id, entry.chapterId)).limit(1) : [];
+  if (!base) throw new FatalError('That chapter isn’t in the version being changed.');
+  const { title, blocks } = await readJson<{ title: string; blocks: Block[] }>(base.textPath);
+  const out = blocks.flatMap((b): Block[] => {
+    if (b.type !== 'img') return [b];
+    const swap = swaps.find((s) => s.imageId === b.imageId);
+    if (!swap) return [b];
+    return swap.next ? [{ ...b, imageId: swap.next }] : [];
+  });
+  const textPath = await writeContentAddressed(userId, { title, blocks: out });
+  const cost = swaps.reduce((n, s) => n + s.cost, 0);
+  const changed = swaps.map((s) => (s.next ? 'Picture changed.' : 'Picture removed.'));
+  await db.insert(editionChapters).values({
+    userId, editionId, runId, sectionId, position: base.position, title: base.title, kidTitle: base.kidTitle, recap: base.recap, textPath,
+    words: base.words, originalWords: base.originalWords,
+    changeNotes: [...base.changeNotes, ...changed.map((note) => ({ category: 'Pictures', level: 'Refine' as const, note }))],
+    summary: base.summary, names: base.names, moments: base.moments, costUsd: cost.toFixed(6),
+  });
+  await db.update(editionRuns).set({ chaptersDone: sql`(select count(*) from ${editionChapters} where ${editionChapters.runId} = ${runId})` }).where(eq(editionRuns.id, runId));
 }
