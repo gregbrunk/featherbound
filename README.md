@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="docs/assets/tuft.svg" width="160" alt="Tuft, Featherbound's mascot: a fluffy white bird in a too-big wizard hat, bobbing and blinking among twinkling stars" />
+</p>
+
+<p align="center">
   <strong>Featherbound</strong><br/>
   <em>Your private family library, where every book is a little softer.</em>
 </p>
