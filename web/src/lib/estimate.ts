@@ -2,9 +2,10 @@ import type { EditionSettings, PictureDensity } from './editions';
 import { imageModel, textModel } from './models';
 
 // Cost and time estimates, priced from the account's chosen models (src/lib/models.ts).
-// Ported from the prototype; the per-word token ratios were checked against the Oct 2026
-// adaptation spike (≈$0.035 per 1,000 words with Claude Opus 5.5). Phase 4 calibrates these
-// against recorded ai_calls.
+// Adaptation is calibrated on the first full Oz run (Oct 2026, Claude Opus 5.5, reasoning high):
+// 25 calls for 34.5k words took 222k input and 98k output tokens, about 20 s per call with three
+// chapters at a time. Each call carries a fixed load (instructions, settings, Story Bible, story
+// so far) on top of its share of the chapter, so short chapters cost more per word.
 
 export type BookSize = { words: number; chapters: number };
 export type ModelChoice = { text: string; images: [string, string, string] };
@@ -55,6 +56,24 @@ export function estimateAnalysis(book: BookSize, text: string) {
   return { tokensIn, tokensOut, cost, minutes };
 }
 
+/** About how many words go into one model call (parts are capped at 2,000 words). */
+const WORDS_PER_CALL = 1700;
+const CALL_OVERHEAD_IN = 6000;
+const CALL_OVERHEAD_OUT = 2100;
+const SECONDS_PER_CALL = 20;
+/** The consistency check and naming the version, after the chapters. */
+const FINISHING_USD = 0.08;
+
+/** Tokens to adapt `words` across `chapters` chapters of a book that has `bookChapters` chapters. */
+export function adaptTokens(words: number, chapters: number, bookChapters: number) {
+  const calls = Math.max(chapters, Math.ceil(words / WORDS_PER_CALL));
+  return {
+    calls,
+    tokensIn: Math.round(words * TOKENS_PER_WORD + calls * (CALL_OVERHEAD_IN + bookChapters * 40)),
+    tokensOut: Math.round(words * TOKENS_PER_WORD * 1.05 + calls * CALL_OVERHEAD_OUT),
+  };
+}
+
 const PARALLEL_IMAGES = 4;
 const RETRY_BUFFER = 1.08;
 const CHARACTER_SHEETS = 5;
@@ -73,10 +92,9 @@ function imageCost(count: number, models: ModelChoice) {
 /** A full edition: text adaptation, plus pictures when Picture Book mode is on. */
 export function estimateEdition(book: BookSize, s: EditionSettings, models: ModelChoice) {
   const tm = textModel(models.text);
-  const tokensIn = Math.round(book.words * TOKENS_PER_WORD * 3.2);
-  const tokensOut = Math.round(book.words * TOKENS_PER_WORD * 1.15);
-  const text = (tokensIn * tm.inPerM + tokensOut * tm.outPerM) / 1e6;
-  const textMinutes = book.words / 2400 / tm.speed;
+  const { calls, tokensIn, tokensOut } = adaptTokens(book.words, book.chapters, book.chapters);
+  const text = (tokensIn * tm.inPerM + tokensOut * tm.outPerM) / 1e6 + FINISHING_USD;
+  const textMinutes = (calls * SECONDS_PER_CALL) / 60 / tm.speed + 1;
 
   const on = s.picture.on;
   const images = on ? picturesFor(book, s.picture.density) : 0;
@@ -88,7 +106,8 @@ export function estimateEdition(book: BookSize, s: EditionSettings, models: Mode
   // Pictures are drawn as chapters finish, so they mostly overlap with the writing.
   const minutes = Math.round(Math.max(textMinutes, imageMinutes) + Math.min(textMinutes, imageMinutes) * 0.25);
 
-  const sampleText = (text / Math.max(1, book.chapters)) * 2 + 0.1;
+  // Samples: chapter 1 plus one more, at this book's average chapter length.
+  const sampleText = estimateSamples(book, (book.words / Math.max(1, book.chapters)) * 2, models, 2);
   const samplePics = on ? RESEARCH.cost + sheets.cost + imageCost(Math.ceil((images / Math.max(1, book.chapters)) * 2), models).cost : 0;
 
   return {
@@ -110,3 +129,10 @@ export function fmtMinutes(min: number) {
 }
 
 export const money = (n: number) => `$${n < 10 ? n.toFixed(2) : n.toFixed(0)}`;
+
+/** Writing a few chosen chapters as samples. */
+export function estimateSamples(book: BookSize, sampleWords: number, models: ModelChoice, sampleChapters = 2) {
+  const tm = textModel(models.text);
+  const t = adaptTokens(Math.max(1, sampleWords), sampleChapters, book.chapters);
+  return (t.tokensIn * tm.inPerM + t.tokensOut * tm.outPerM) / 1e6;
+}

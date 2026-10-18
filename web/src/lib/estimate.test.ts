@@ -6,11 +6,10 @@ import { DEFAULT_MODELS } from './models';
 const oz = { words: 39_000, chapters: 24 };
 
 describe('estimates', () => {
-  it('prices a text-only edition near the adaptation spike (~$0.035 per 1,000 words)', () => {
-    const e = estimateEdition(oz, defaultSettings(7), DEFAULT_MODELS);
+  it('prices a text-only Oz edition within 25% of the real Oct 2026 run ($2.93 for 22 chapters)', () => {
+    const e = estimateEdition({ words: 34_500, chapters: 22 }, defaultSettings(7), DEFAULT_MODELS);
     expect(e.images).toBe(0);
-    expect(e.total / (oz.words / 1000)).toBeGreaterThan(0.02);
-    expect(e.total / (oz.words / 1000)).toBeLessThan(0.06);
+    expect(Math.abs(e.total - 2.93) / 2.93).toBeLessThan(0.25);
     expect(e.samples).toBeLessThan(e.total);
   });
 

@@ -23,7 +23,7 @@ const STEPS = [
   { key: 'style', title: 'Story & style', pose: 'write' as TuftPose },
   { key: 'pictures', title: 'Pictures', pose: 'cheer' as TuftPose },
   { key: 'notes', title: 'Anything else?', pose: 'think' as TuftPose },
-  { key: 'review', title: 'Review & save', pose: 'cheer' as TuftPose },
+  { key: 'review', title: 'Review & start', pose: 'cheer' as TuftPose },
 ];
 
 export type WizardBook = BookSize & { id: string; title: string; cover: CoverSpec; coverUrl?: string };
@@ -46,14 +46,16 @@ export default function Wizard({ book, heat, analysed, seriesName, models, start
 
   const est = estimateEdition(book, s, models);
   const capValue = cap ?? defaultCap(est.total);
+  // Pictures are drawn from Phase 6 on; until then samples are text only.
+  const textSamples = estimateEdition(book, { ...s, picture: { ...s.picture, on: false } }, models).samples;
   const set = (patch: Partial<EditionSettings>) => setS((prev) => ({ ...prev, ...patch }));
   const cur = STEPS[step];
 
-  const save = () => {
+  const save = (makeSamples: boolean) => {
     setError(null);
     startSave(async () => {
       try {
-        await saveDraftEdition(book.id, { settings: s, costCap: capValue, editionId: editingId });
+        await saveDraftEdition(book.id, { settings: s, costCap: capValue, editionId: editingId, makeSamples });
       } catch (e) {
         // redirect() throws to navigate; anything else is a real error.
         if (e instanceof Error && !/NEXT_REDIRECT/.test(e.message) && !('digest' in e && String(e.digest).startsWith('NEXT_REDIRECT'))) {
@@ -236,9 +238,9 @@ export default function Wizard({ book, heat, analysed, seriesName, models, start
                     </div>
                   </div>
                   <div className="est-lines">
-                    <div><span>Sample chapters (first)</span><strong>~{money(est.samples)}</strong></div>
+                    <div><span>Sample chapters (next step)</span><strong>~{money(textSamples)}</strong></div>
                     <div><span>Text · {textModel(models.text).name} · ~{(est.tokensIn / 1e6).toFixed(2)}M in / {(est.tokensOut / 1e6).toFixed(2)}M out tokens · ~{fmtMinutes(est.textMinutes)}</span><strong>~{money(est.text)}</strong></div>
-                    {s.picture.on && <div><span>Pictures · {imageModel(models.images[0]).name} · research, 5 character sheets + ~{est.images} illustrations · ~{fmtMinutes(est.imageMinutes)}</span><strong>~{money(est.imageCost)}</strong></div>}
+                    {s.picture.on && <div><span>Pictures · {imageModel(models.images[0]).name} · research, 5 character sheets + ~{est.images} illustrations · ~{fmtMinutes(est.imageMinutes)} · drawn in a coming update</span><strong>~{money(est.imageCost)}</strong></div>}
                     {s.picture.on && est.imageWorst > est.imageCost * 1.05 && <div className="faint"><span>If every picture fell back to the priciest backup model</span><span>up to ~{money(est.totalWorst)}</span></div>}
                   </div>
                   <div className="field" style={{ marginTop: 6 }}>
@@ -253,9 +255,9 @@ export default function Wizard({ book, heat, analysed, seriesName, models, start
 
                 <Guide pose="read" size={56}>
                   {analysed
-                    ? <>When samples arrive, I’ll write <strong>chapter 1</strong> to check the voice, and <strong>chapter {hardestChapter(heat)}</strong>, the most intense one, as the hardest test.</>
-                    : <>When samples arrive, I’ll write <strong>chapter 1</strong> to check the voice, plus the most intense chapter once I’ve read the book.</>}
-                  {' '}For now I’ll save these settings as a draft; sample chapters come in the next update.
+                    ? <>I’ll write <strong>chapter 1</strong> to check the voice, and <strong>chapter {hardestChapter(heat)}</strong>, the most intense one, as the hardest test. You can pick others on the next screen.</>
+                    : <>I’ll write <strong>chapter 1</strong> to check the voice, plus the most intense chapter once I’ve read the book.</>}
+                  {' '}{analysed ? 'Nothing else is written or billed until you’ve read them.' : 'First I need to read the book through; you can save this as a draft and start that from the book’s page.'}
                 </Guide>
                 {error && <p className="small status-bad">{error}</p>}
               </div>
@@ -269,9 +271,12 @@ export default function Wizard({ book, heat, analysed, seriesName, models, start
             {step < STEPS.length - 1 ? (
               <button className="btn btn-primary" onClick={() => setStep(step + 1)}>Next <Icon name="right" size={18} /></button>
             ) : (
-              <button className="btn btn-gold" disabled={pending} onClick={save}>
-                <Icon name="check" size={18} /> {pending ? 'Saving…' : editingId ? 'Save changes' : 'Save draft edition'}
-              </button>
+              <>
+                <button className="btn btn-ghost" disabled={pending} onClick={() => save(false)}>{editingId ? 'Save changes' : 'Save as draft'}</button>
+                <button className="btn btn-gold" disabled={pending || !analysed} onClick={() => save(true)} title={analysed ? undefined : 'Read the book through first'}>
+                  <Icon name="wand" size={18} /> {pending ? 'Starting…' : `Make sample chapters · ~${money(textSamples)}`}
+                </button>
+              </>
             )}
           </div>
         </section>
@@ -311,7 +316,7 @@ function StepGuide({ step, title, s, fromName, seriesName, analysed }: { step: s
     case 'notes':
       return <>Anything else I should know? Little details make a big difference.</>;
     default:
-      return <>All set! Check everything over, then save. Nothing is written or billed yet.</>;
+      return <>All set! I’ll write two sample chapters first, so you can tell me what you think before I do the whole book.</>;
   }
 }
 

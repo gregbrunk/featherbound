@@ -6,7 +6,7 @@ import { useEffect, useState, useTransition } from 'react';
 import Icon from '@/components/Icon';
 import Tuft from '@/components/Tuft';
 import { Modal, ModalHead } from '@/components/ui';
-import { deleteEdition, startAnalysis } from '../edition-actions';
+import { deleteEdition, startAnalysis, startSamples } from '../edition-actions';
 
 /** Asks before reading the book with the account's AI key, showing what it will cost. */
 export function StartAnalysisButton({ bookId, title, cost, minutes, model, hasKey, again = false }: {
@@ -97,5 +97,26 @@ export function DeleteEditionButton({ bookId, editionId, name }: { bookId: strin
         </Modal>
       )}
     </>
+  );
+}
+
+/** Write the first round of sample chapters for a draft edition. */
+export function MakeSamplesButton({ editionId, cost, disabled }: { editionId: string; cost: string; disabled: boolean }) {
+  const [pending, start] = useTransition();
+  const [message, setMessage] = useState<string | null>(null);
+  const router = useRouter();
+  return (
+    <div className="stack-sm" style={{ alignItems: 'flex-end' }}>
+      <button className="btn btn-gold" disabled={pending || disabled} title={disabled ? 'Read the book through first' : undefined}
+        onClick={() => start(async () => {
+          const r = await startSamples(editionId);
+          if (!r.ok) setMessage(r.message);
+          else router.push(`/editions/${editionId}/samples`);
+        })}>
+        <Icon name="wand" size={18} /> {pending ? 'Starting…' : `Make sample chapters · ~${cost}`}
+      </button>
+      {disabled && <span className="tiny muted">Read the book through first (What’s inside tab).</span>}
+      {message && <span className="small status-bad">{message}</span>}
+    </div>
   );
 }

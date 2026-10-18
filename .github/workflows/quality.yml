@@ -1,0 +1,33 @@
+name: Adaptation quality
+
+# Adapts golden public-domain chapters and grades them with a judge model. Costs about
+# $0.40 a run on the AI Gateway key in the AI_GATEWAY_API_KEY repository secret, so it runs
+# by hand and when the adaptation prompt changes, not on every push.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['web/src/lib/adapt.ts', 'web/quality/**']
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    env:
+      AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: Run quality suite
+        if: ${{ env.AI_GATEWAY_API_KEY != '' }}
+        run: npm run quality
+      - name: Skipped
+        if: ${{ env.AI_GATEWAY_API_KEY == '' }}
+        run: echo "Add an AI_GATEWAY_API_KEY repository secret to run the quality suite."

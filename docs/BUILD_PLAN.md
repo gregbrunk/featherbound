@@ -15,7 +15,8 @@ This plan turns the PRD and the locked prototype into a production app, in phase
 | 1 · Accounts, access & keys | Done (2026-10-17). Better Auth with Google, allow list, encrypted keys, model settings, themed dropdowns. |
 | 2 · Library & import | Done (2026-10-17). EPUB/PDF import job, review screen, library, book and series pages, reader with synced progress. Re-import added after nested-part chapters were fixed. Exporting a rebuilt EPUB moves to Phase 5, alongside edition export; originals download as the uploaded file. |
 | 3 · Analysis, wizard & estimates | Done (2026-10-17). Content reports checked on real books in production. Analysis job (per-chapter ratings in batches of 5, then the Story Bible) starts only after the parent sees its estimate. Book page tabs, the 7-step wizard, estimates and a cost cap are in. The wizard saves a draft edition; "Make sample chapters" arrives with Phase 4. Oz: estimate $0.94, actual $0.84, about 2 minutes. |
-| 4 · Adaptation & samples | Next |
+| 4 · Adaptation engine | Built (2026-10-17); awaiting Greg's read of a real book. Sample rounds with highlight comments, full runs with chapters three at a time and each ~2,000-word part as its own step, cost-cap pause and resume, consistency check, version 1.0.0 with an AI name, edition reader with kid titles and recaps, library notices, usage dashboard, and a judged quality suite (`npm run quality`, manual GitHub workflow). Oz at age 7: 24 chapters, full length, $2.93 plus $0.39 samples, 8 minutes. The estimate was recalibrated from that run (now within 6%). |
+| 5 · Refinement, versions & export | Next |
 
 ## 1. Architecture at a glance
 

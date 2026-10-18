@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, isNotNull } from 'drizzle-orm';
 import { getDb } from '@/db';
 import { bookAnalyses, editions, sectionAnalyses, storyBibles } from '@/db/schema';
 import type { Block } from './import/types';
@@ -70,4 +70,24 @@ export function blocksToText(blocks: Block[]) {
     })
     .filter(Boolean)
     .join('\n\n');
+}
+
+/** The chapter with the most content across all categories: the hardest test for a sample. */
+export function hardestSectionId(rows: { sectionId: string; intensities: Record<string, number | undefined> }[]) {
+  let best: string | null = null;
+  let bestScore = -1;
+  for (const r of rows) {
+    const score = Object.values(r.intensities).reduce<number>((n, v) => n + (v ?? 0), 0);
+    if (score > bestScore) { best = r.sectionId; bestScore = score; }
+  }
+  return best;
+}
+
+/** Editions with something to tell the parent: samples ready, a paused or failed run, or a finished book. */
+export async function listNotices(userId: string) {
+  return getDb()
+    .select({ id: editions.id, bookId: editions.bookId, name: editions.name, notice: editions.notice, at: editions.noticeAt })
+    .from(editions)
+    .where(and(eq(editions.userId, userId), isNotNull(editions.notice)))
+    .orderBy(desc(editions.noticeAt));
 }

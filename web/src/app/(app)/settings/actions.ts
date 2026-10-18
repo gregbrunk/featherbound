@@ -3,7 +3,7 @@
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getDb } from '@/db';
-import { allowedEmails, type KeyProvider } from '@/db/schema';
+import { accountSettings, allowedEmails, type KeyProvider } from '@/db/schema';
 import { saveModelChoices, setHandoffPin } from '@/lib/account';
 import { normalizeEmail } from '@/lib/allowlist';
 import { deleteKey, saveKey, validateKey } from '@/lib/keys';
@@ -72,4 +72,16 @@ export async function removeEmailAction(form: FormData) {
   const [row] = await getDb().select().from(allowedEmails).where(eq(allowedEmails.email, email)).limit(1);
   if (row && !row.isAdmin) await getDb().delete(allowedEmails).where(eq(allowedEmails.email, email));
   revalidatePath('/settings');
+}
+
+/** Monthly budget for the usage dashboard. Empty turns it off. */
+export async function saveBudgetAction(budget: number | null): Promise<FormState> {
+  const { userId } = await requireAccount();
+  if (budget !== null && (!Number.isFinite(budget) || budget < 1 || budget > 100_000)) return { ok: false, message: 'Pick a budget between $1 and $100,000.' };
+  await getDb()
+    .insert(accountSettings)
+    .values({ userId, monthlyBudget: budget === null ? null : budget.toFixed(2) })
+    .onConflictDoUpdate({ target: accountSettings.userId, set: { monthlyBudget: budget === null ? null : budget.toFixed(2), updatedAt: new Date() } });
+  revalidatePath('/settings');
+  return { ok: true };
 }

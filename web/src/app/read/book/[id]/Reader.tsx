@@ -8,10 +8,13 @@ import { Modal, ModalHead, Segmented } from '@/components/ui';
 import type { Block } from '@/lib/import/types';
 import { addBookmark, removeBookmark, saveProgress } from '../../../(app)/books/actions';
 
-type Section = { id: string; title: string };
+type Section = { id: string; title: string; subtitle?: string };
 type Bookmark = { id: string; sectionId: string; fraction: number; label: string };
 type Props = {
   bookId: string;
+  /** Where chapter text comes from; defaults to the original book's sections. */
+  textBase?: string;
+  textQuery?: string;
   title: string;
   subtitle: string;
   backHref: string;
@@ -55,7 +58,7 @@ const subscribeWide = (l: () => void) => { const m = window.matchMedia(WIDE); m.
 // Chapter html is produced by our parser (only <em>, <strong>, <br>); this is a second guard.
 const safeInline = (html: string) => html.replace(/<(?!\/?(em|strong)>|br\s*\/?>)[^>]*>/gi, '');
 
-export default function Reader({ bookId, title, subtitle, backHref, target, sections, start, bookmarks: initialBookmarks }: Props) {
+export default function Reader({ bookId, textBase, textQuery = '', title, subtitle, backHref, target, sections, start, bookmarks: initialBookmarks }: Props) {
   const startIndex = Math.max(0, sections.findIndex((s) => s.id === start.sectionId));
   const [index, setIndex] = useState(startIndex);
   const [loaded, setLoaded] = useState<{ sectionId: string; blocks: Block[] } | null>(null);
@@ -83,7 +86,7 @@ export default function Reader({ bookId, title, subtitle, backHref, target, sect
       if (!s) return null;
       const hit = cache.current.get(s.id);
       if (hit) return hit;
-      const res = await fetch(`/api/books/${bookId}/sections/${s.id}`);
+      const res = await fetch(`${textBase ?? `/api/books/${bookId}/sections`}/${s.id}${textQuery}`);
       if (!res.ok) throw new Error('Could not load chapter');
       const data = (await res.json()) as { blocks: Block[] };
       cache.current.set(s.id, data.blocks);
@@ -98,7 +101,7 @@ export default function Reader({ bookId, title, subtitle, backHref, target, sect
       if (!cancelled && sectionId) setLoaded({ sectionId, blocks: [{ type: 'p', html: 'This chapter couldn’t be loaded. Check your connection and try again.' }] });
     });
     return () => { cancelled = true; };
-  }, [index, sections, bookId]);
+  }, [index, sections, bookId, textBase, textQuery]);
 
   const blocks = loaded && loaded.sectionId === sections[index]?.id ? loaded.blocks : null;
   const spread = prefs.spread && wide;
@@ -232,6 +235,7 @@ export default function Reader({ bookId, title, subtitle, backHref, target, sect
             <div className="chapter-head">
               <span className="chapter-num">{index + 1} of {sections.length}</span>
               <h1>{section?.title}</h1>
+              {section?.subtitle && <p className="chapter-subtitle">{section.subtitle}</p>}
               <div className="chapter-flourish" aria-hidden="true">✦ ❦ ✦</div>
             </div>
             {blocks.map((b, i) => {
@@ -244,7 +248,7 @@ export default function Reader({ bookId, title, subtitle, backHref, target, sect
                 </figure>
               );
               if (b.type === 'h') return <h2 key={i} className={`book-h book-h${b.level}`} dangerouslySetInnerHTML={{ __html: safeInline(b.html) }} />;
-              if (b.type === 'quote') return <blockquote key={i} className="book-quote" dangerouslySetInnerHTML={{ __html: safeInline(b.html) }} />;
+              if (b.type === 'quote') return <blockquote key={i} className={`book-quote${b.html.startsWith('<em>The story so far') ? ' recap' : ''}`} dangerouslySetInnerHTML={{ __html: safeInline(b.html) }} />;
               return <p key={i} dangerouslySetInnerHTML={{ __html: safeInline(b.html) }} />;
             })}
             {index === sections.length - 1 && (
