@@ -23,7 +23,7 @@ export async function validateKey(provider: KeyProvider, key: string): Promise<K
       case 'gateway': {
         // Always pass the key explicitly so Vercel's OIDC token for this deployment is never used.
         const credits = await createGateway({ apiKey: key }).getCredits();
-        return { ok: true, detail: `Balance: $${Number(credits.balance).toFixed(2)}` };
+        return { ok: true, detail: `Balance when checked: $${Number(credits.balance).toFixed(2)}` };
       }
       case 'anthropic': {
         try {

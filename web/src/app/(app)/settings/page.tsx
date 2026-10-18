@@ -84,7 +84,7 @@ async function ModelsTab({ userId }: { userId: string }) {
           <p className="small muted">Keys are checked when you save them, encrypted, and never shown again (only the last four characters). One Vercel AI Gateway key covers every model at the providers’ list prices.</p>
         </div>
         {PROVIDERS.map((p) => (
-          <KeyRow key={p.id} provider={p.id} name={p.name} hint={p.hint} recommended={p.recommended}
+          <KeyRow key={`${p.id}:${byProvider[p.id]?.last4 ?? ''}:${byProvider[p.id]?.status ?? ''}`} provider={p.id} name={p.name} hint={p.hint} recommended={p.recommended}
             saved={byProvider[p.id] ? { provider: p.id, last4: byProvider[p.id].last4, status: byProvider[p.id].status, statusDetail: byProvider[p.id].statusDetail } : undefined} />
         ))}
       </div>

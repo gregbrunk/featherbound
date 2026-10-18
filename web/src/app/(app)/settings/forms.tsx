@@ -21,35 +21,35 @@ export type SavedKeyView = { provider: string; last4: string; status: 'ok' | 'in
 export function KeyRow({ provider, name, hint, recommended, saved }: { provider: string; name: string; hint: string; recommended?: boolean; saved?: SavedKeyView }) {
   const [state, action, pending] = useActionState(saveKeyAction, null);
   const [editing, setEditing] = useState(!saved);
+  const showForm = editing || !saved;
   return (
     <div className="key-row">
-      <div className="key-head">
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <strong>{name}</strong> {recommended && <span className="chip chip-emerald">Recommended</span>}
-          <div className="small muted">{hint}</div>
-        </div>
-        {saved && !editing && (
-          <div className="row" style={{ gap: 8 }}>
-            <span className="mono small">••••{saved.last4}</span>
-            <span className={`chip ${saved.status === 'ok' ? 'chip-emerald' : 'chip-ruby'}`}>{saved.status === 'ok' ? 'Working' : 'Not working'}</span>
-            <button className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>Replace</button>
-            <form action={removeKeyAction}>
-              <input type="hidden" name="provider" value={provider} />
-              <button className="btn btn-ghost btn-sm" style={{ color: 'var(--ruby)' }}>Remove</button>
-            </form>
-          </div>
-        )}
+      <div className="key-info">
+        <strong>{name}</strong>{recommended && <span className="chip chip-emerald">Recommended</span>}
+        <div className="small muted">{hint}</div>
       </div>
-      {(editing || !saved) && (
-        <form action={action} className="row" style={{ flexWrap: 'wrap' }}>
+      {showForm ? (
+        <form action={action} className="key-form">
           <input type="hidden" name="provider" value={provider} />
-          <input className="input key-input" name="key" type="password" autoComplete="off" spellCheck={false} placeholder={`Paste your ${name} key`} aria-label={`${name} key`} required />
-          <button className="btn btn-primary btn-sm" disabled={pending}>{pending ? 'Checking…' : 'Save'}</button>
+          <input className="input" name="key" type="password" autoComplete="off" spellCheck={false} placeholder={`Paste your ${name} key`} aria-label={`${name} key`} required />
+          <button className="btn btn-secondary btn-sm" disabled={pending}>{pending ? 'Checking…' : 'Save'}</button>
           {saved && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(false)}>Cancel</button>}
         </form>
+      ) : (
+        <div className="key-saved">
+          <span className="mono small">••••{saved.last4}</span>
+          {saved.status === 'ok'
+            ? <span className="chip chip-emerald"><Icon name="check" size={12} stroke={3} /> Working</span>
+            : <span className="chip chip-ruby">Not working</span>}
+          <button className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>Replace</button>
+          <form action={removeKeyAction}>
+            <input type="hidden" name="provider" value={provider} />
+            <button className="btn btn-ghost btn-sm" style={{ color: 'var(--ruby)' }}>Remove</button>
+          </form>
+        </div>
       )}
-      {saved?.statusDetail && !editing && <p className="tiny faint">{saved.statusDetail}</p>}
-      <Status state={state} />
+      {saved?.statusDetail && !showForm && <p className="tiny faint key-note">{saved.statusDetail.replace(/^Balance:/, 'Balance when checked:')}</p>}
+      {state?.message && !state.ok && <div className="key-note"><Status state={state} /></div>}
     </div>
   );
 }

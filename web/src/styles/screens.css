@@ -498,11 +498,20 @@ blockquote { margin: 0; font-family: var(--font-read); font-style: italic; color
 .model-slot .slot-name { font-weight: 800; padding-top: 10px; }
 .model-slot .slot-name small { display: block; font-weight: 600; color: var(--ink-faint); font-size: 12px; }
 .model-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-.key-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 0; border-top: 1px dashed var(--line); }
+/* One row per provider: name and hint on the left, the key (or a field to paste one) on the right. */
+.key-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 14px 0; border-top: 1px dashed var(--line); }
 .key-row:first-of-type { border-top: 0; }
-.key-row .key-info { flex: 1 1 220px; min-width: 0; }
-.key-row form { display: flex; gap: 8px; flex: 1 1 280px; }
-.key-row form .input { flex: 1; min-width: 0; font-family: var(--font-mono, monospace); }
+.key-row .key-info { flex: 1 1 240px; min-width: 0; }
+.key-row .key-info .chip { margin-left: 4px; vertical-align: 2px; }
+.key-saved { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.key-saved .mono { color: var(--ink-soft); margin-right: 2px; }
+.key-row form.key-form { display: flex; align-items: center; gap: 8px; flex: 1 1 320px; max-width: 460px; }
+.key-row form.key-form .input { flex: 1; min-width: 0; height: 40px; padding: 0 14px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; letter-spacing: 0; }
+.key-row .key-note { flex-basis: 100%; margin: 0; }
+@media (max-width: 560px) {
+  .key-saved { justify-content: flex-start; gap: 2px; }
+  .key-saved .btn-sm { padding-inline: 7px; }
+}
 @media (max-width: 560px) { .model-slot { grid-template-columns: 1fr; } .model-slot .slot-name { padding-top: 0; } }
 
 /* ---------- First visit ---------- */
@@ -526,12 +535,6 @@ blockquote { margin: 0; font-family: var(--font-read); font-style: italic; color
 .settings-nav a:hover { background: rgba(75, 46, 131, 0.06); }
 .settings-nav a.on { background: var(--paper); color: var(--plum); box-shadow: var(--shadow-sm); }
 @media (max-width: 860px) { .settings-nav a { flex: none; } }
-.key-row { display: flex; flex-direction: column; gap: 10px; padding: 14px 0; border-bottom: 1px solid var(--line); }
-.key-row:last-of-type { border-bottom: none; }
-.key-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.key-input { flex: 1; min-width: 220px; font-family: ui-monospace, monospace; }
-.model-slot { display: flex; flex-direction: column; gap: 6px; padding: 12px 0; border-bottom: 1px solid var(--line); }
-.model-slot:last-of-type { border-bottom: none; }
 .status-ok { color: var(--emerald); font-weight: 700; }
 .status-bad { color: var(--ruby); font-weight: 700; }
 .gate-tagline { max-width: 30ch; text-wrap: balance; }
