@@ -15,6 +15,7 @@ import { nextFreeVersion, passageWindow, refinePart, type RefineJob, type Refine
 import { checkOriginalPicture, researchLook, scenePrompt, sheetPrompt } from '@/lib/art';
 import { picturesForChapter } from '@/lib/estimate';
 import { forReading } from '@/lib/compress';
+import { notify, type NoticeKind } from '@/lib/notify';
 import { sniffImage } from '@/lib/export/xhtml';
 import { AllRefused, drawWithChain, type DrawRequest } from '@/lib/images';
 import { getModelChoices } from '@/lib/ai';
@@ -64,6 +65,7 @@ export async function adaptEdition(userId: string, editionId: string, runId: str
 
     if (plan.kind === 'refine') {
       await publishRefinedVersion(userId, editionId, runId);
+      await sendNotice(editionId, 'ready');
       return { ok: true as const };
     }
 
@@ -77,6 +79,7 @@ export async function adaptEdition(userId: string, editionId: string, runId: str
         }
       }
       await finishSamples(editionId, runId);
+      await sendNotice(editionId, 'samples-ready');
       return { ok: true as const };
     }
 
@@ -88,9 +91,11 @@ export async function adaptEdition(userId: string, editionId: string, runId: str
       if (plan.pictures) await illustrateChapter(userId, editionId, runId, f.sectionId);
     }
     await publishFirstVersion(userId, editionId, runId);
+    await sendNotice(editionId, 'ready');
     return { ok: true as const };
   } catch (e) {
     await failRun(editionId, runId, e instanceof Error ? e.message : String(e));
+    await sendNotice(editionId, 'failed', e instanceof Error ? e.message : String(e));
     return { ok: false as const };
   }
 }
@@ -99,6 +104,7 @@ async function waitForParent(userId: string, editionId: string, runId: string, n
   using hook = createHook<CapDecision>();
   await hook.getConflict(); // commit the hook before telling the parent how to resume it
   await markPaused(editionId, runId, hook.token, needed);
+  await sendNotice(editionId, 'paused-cap');
   const decision = await hook;
   if (decision.action === 'continue') await markResumed(editionId, runId, decision.cap);
   return decision;
@@ -125,6 +131,14 @@ async function refineChapter(userId: string, editionId: string, runId: string, s
 }
 
 // ── Steps ──────────────────────────────────────────────────────────────────────────
+
+/** Email the parent. Its own step with no retries, so a retried status update never sends twice. */
+async function sendNotice(editionId: string, kind: NoticeKind, detail?: string) {
+  'use step';
+  return notify(editionId, kind, detail?.slice(0, 200));
+}
+sendNotice.maxRetries = 0;
+
 
 type TodoChapter = { sectionId: string; words: number };
 

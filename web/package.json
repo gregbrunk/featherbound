@@ -35,6 +35,7 @@
     "puppeteer-core": "25.12.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "resend": "6.32.0",
     "server-only": "^0.0.1",
     "sharp": "0.35.5",
     "workflow": "^5.2.2",

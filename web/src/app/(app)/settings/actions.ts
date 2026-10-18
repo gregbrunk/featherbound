@@ -96,3 +96,14 @@ export async function setPreferDirectKeysAction(prefer: boolean): Promise<FormSt
   revalidatePath('/settings');
   return { ok: true };
 }
+
+/** Emails when samples are ready, an edition is done, or a run pauses or fails. */
+export async function setEmailNoticesAction(on: boolean): Promise<FormState> {
+  const { userId } = await requireAccount();
+  await getDb()
+    .insert(accountSettings)
+    .values({ userId, emailNotices: on })
+    .onConflictDoUpdate({ target: accountSettings.userId, set: { emailNotices: on, updatedAt: new Date() } });
+  revalidatePath('/settings');
+  return { ok: true };
+}

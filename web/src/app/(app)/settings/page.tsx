@@ -12,7 +12,7 @@ import { IMAGE_MODELS, PROVIDERS, TEXT_MODELS, imageModel, keyFor, textModel } f
 import { requireAccount } from '@/lib/session';
 import { getUsage } from '@/lib/usage';
 import UsageView from './Usage';
-import { AddEmailForm, KeyRow, ModelsForm, PinForm, PreferDirectForm, RemoveEmailButton } from './forms';
+import { AddEmailForm, EmailNoticesForm, KeyRow, ModelsForm, PinForm, PreferDirectForm, RemoveEmailButton } from './forms';
 
 
 // Reads the session on every request; see the note in (app)/layout.tsx.
@@ -46,7 +46,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           ))}
         </nav>
         <section style={{ minWidth: 0 }}>
-          {tab === 'usage' && <UsageTab userId={account.userId} />}
+          {tab === 'usage' && <UsageTab userId={account.userId} email={account.email} />}
           {tab === 'models' && <ModelsTab userId={account.userId} />}
           {tab === 'access' && account.isAdmin && <AccessTab adminEmail={account.email} />}
           {tab === 'handoff' && <HandoffTab userId={account.userId} />}
@@ -57,11 +57,16 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   );
 }
 
-async function UsageTab({ userId }: { userId: string }) {
+async function UsageTab({ userId, email }: { userId: string; email: string }) {
   // "This month" depends on the clock, so render at request time.
   await connection();
   const [usage, settings] = await Promise.all([getUsage(userId), getAccountSettings(userId)]);
-  return <UsageView usage={usage} budget={settings?.monthlyBudget ? Number(settings.monthlyBudget) : null} />;
+  return (
+    <div className="stack-lg">
+      <UsageView usage={usage} budget={settings?.monthlyBudget ? Number(settings.monthlyBudget) : null} />
+      <EmailNoticesForm on={settings?.emailNotices ?? true} email={email} ready={Boolean(process.env.RESEND_API_KEY)} />
+    </div>
+  );
 }
 
 async function ModelsTab({ userId }: { userId: string }) {

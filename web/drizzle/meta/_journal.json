@@ -85,6 +85,13 @@
       "when": 1792330867682,
       "tag": "0011_moments",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792337916021,
+      "tag": "0012_email_notices",
+      "breakpoints": true
     }
   ]
 }
