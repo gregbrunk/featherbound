@@ -31,6 +31,6 @@ describe('catalog', () => {
   });
   it('prices text and pictures', () => {
     expect(textCostUsd('anthropic/claude-opus-5.5', 1_000_000, 100_000)).toBeCloseTo(6);
-    expect(imageCostUsd('openai/gpt-image-2', 10)).toBeCloseTo(0.54);
+    expect(imageCostUsd('openai/gpt-image-2', 10)).toBeCloseTo(0.75);
   });
 });

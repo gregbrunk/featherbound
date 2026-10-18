@@ -56,7 +56,11 @@ export type DrawRequest = {
 
 export type Drawn = { bytes: Uint8Array; mediaType: string; model: string; cost: number; ms: number };
 
+// Some models take a pixel size instead of an aspect ratio (the bake-off found Seedream; GPT Image too).
 const SEEDREAM_SIZES: Record<DrawRequest['aspect'], string> = { '4:3': '2304x1728', '3:2': '2496x1664', '1:1': '2048x2048', '2:3': '1664x2496' };
+const GPT_IMAGE_SIZES: Record<DrawRequest['aspect'], string> = { '4:3': '1536x1024', '3:2': '1536x1024', '1:1': '1024x1024', '2:3': '1024x1536' };
+const sizeFor = (modelId: string, aspect: DrawRequest['aspect']) =>
+  modelId.startsWith('bytedance/') ? SEEDREAM_SIZES[aspect] : modelId.startsWith('openai/') ? GPT_IMAGE_SIZES[aspect] : null;
 
 async function drawOnce(h: Handle, req: DrawRequest): Promise<Drawn> {
   const t0 = Date.now();
@@ -65,7 +69,7 @@ async function drawOnce(h: Handle, req: DrawRequest): Promise<Drawn> {
     const r = await generateImage({
       model: h.model,
       prompt: refs.length ? { text: req.prompt, images: refs } : req.prompt,
-      ...(h.modelId.startsWith('bytedance/') ? { size: SEEDREAM_SIZES[req.aspect] as `${number}x${number}` } : { aspectRatio: req.aspect }),
+      ...(sizeFor(h.modelId, req.aspect) ? { size: sizeFor(h.modelId, req.aspect) as `${number}x${number}` } : { aspectRatio: req.aspect }),
       maxRetries: 1,
     });
     const cost = Number((r.providerMetadata as { gateway?: { cost?: string | number } } | undefined)?.gateway?.cost) || imageCostUsd(h.modelId, 1);

@@ -34,6 +34,9 @@ export async function adaptEdition(userId: string, editionId: string, runId: str
   'use workflow';
   try {
     const plan = await planRun(userId, editionId, runId, reuseFromRunId);
+    for (let k = 0; k < plan.alreadyWritten.length; k += BATCH) {
+      await Promise.all(plan.alreadyWritten.slice(k, k + BATCH).map((sectionId) => illustrateChapter(userId, editionId, runId, sectionId)));
+    }
     let i = 0;
     while (i < plan.todo.length) {
       const batch = plan.todo.slice(i, i + BATCH);
@@ -166,7 +169,10 @@ async function planRun(userId: string, editionId: string, runId: string, reuseFr
 
   const totalWords = run.sectionIds.reduce((n, id) => n + (words.get(id) ?? 0), 0);
   const pictures = editionSettingsSchema.parse(ed.settings).picture.on;
-  return { kind: run.kind, refineScope: run.refine?.scope ?? null, todo, pictures, ratePerWord: Number(run.estimateUsd) / Math.max(1, totalWords) };
+  // Chapters already written (approved samples carried over, or a resumed run) still need
+  // their pictures; drawing is idempotent, so asking again is safe.
+  const alreadyWritten = run.kind === 'full' && pictures ? run.sectionIds.filter((id) => done.has(id)) : [];
+  return { kind: run.kind, refineScope: run.refine?.scope ?? null, todo, pictures, alreadyWritten, ratePerWord: Number(run.estimateUsd) / Math.max(1, totalWords) };
 }
 
 /** Will the next chapters fit under the cap? Uses this run's actual cost per word once it has one. */
@@ -563,7 +569,7 @@ export async function redrawSheet(userId: string, editionId: string, sheetId: st
 }
 
 /** Pick and draw a chapter's pictures, check the book's own ones, then put them in the text. */
-async function illustrateChapter(userId: string, editionId: string, runId: string, sectionId: string) {
+export async function illustrateChapter(userId: string, editionId: string, runId: string, sectionId: string) {
   const plan = await planChapterPictures(userId, editionId, runId, sectionId);
   if (!plan) return;
   const results: PlacedPicture[] = [];

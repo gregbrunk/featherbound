@@ -1,4 +1,5 @@
-// Model catalog. Prices and speeds come from the Oct 2026 illustration bake-off
+// Model catalog. GPT Image 2's price is from the first illustrated Oz run (with character-sheet
+// references attached, about $0.08 a picture); other prices and speeds come from the Oct 2026 illustration bake-off
 // (spikes/illustration-bakeoff) and the Vercel AI Gateway price list. Gateway IDs were checked
 // against https://ai-gateway.vercel.sh/v1/models. `directId` is the provider's own model ID,
 // used when an account has that provider's key instead of a gateway key. Claude IDs are
@@ -37,7 +38,7 @@ export const TEXT_MODELS: TextModel[] = [
 ];
 
 export const IMAGE_MODELS: ImageModel[] = [
-  { id: 'openai/gpt-image-2', api: 'image', directId: 'gpt-image-2', name: 'GPT Image 2', provider: 'openai', perImage: 0.054, seconds: 30, bookArt: 5, consistency: 5, strictness: 'strict', note: 'Best match to a book’s art and most consistent characters. Refuses well-known copyrighted characters.' },
+  { id: 'openai/gpt-image-2', api: 'image', directId: 'gpt-image-2', name: 'GPT Image 2', provider: 'openai', perImage: 0.075, seconds: 30, bookArt: 5, consistency: 5, strictness: 'strict', note: 'Best match to a book’s art and most consistent characters. Refuses well-known copyrighted characters.' },
   { id: 'google/gemini-3.1-flash-image', api: 'text', directId: 'gemini-3.1-flash-image', name: 'Nano Banana 2', provider: 'google', perImage: 0.068, seconds: 16, bookArt: 4, consistency: 4, strictness: 'medium', note: 'Close second and fast. Draws copyrighted characters. Can copy an artist’s signature.' },
   { id: 'spacexai/grok-imagine-image-2.0', api: 'image', directId: 'grok-imagine-image-2.0', name: 'Grok Imagine 2.0', provider: 'xai', perImage: 0.08, seconds: 13, bookArt: 3, consistency: 4, strictness: 'loose', note: 'Loosest filters tested: drew every scene and both Harry Potter tests. Clean ink style, less true to the book’s art.' },
   { id: 'google/gemini-3-pro-image', api: 'text', directId: 'gemini-3-pro-image', name: 'Nano Banana Pro', provider: 'google', perImage: 0.141, seconds: 26, bookArt: 3, consistency: 2, strictness: 'medium', note: 'Characters drift between pictures. Not recommended.' },
