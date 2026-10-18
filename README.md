@@ -3,7 +3,8 @@
 A private family library that turns books we love into softer, kid-appropriate editions, keeping the full story, characters and themes intact.
 
 - **Product requirements:** [docs/PRD.md](docs/PRD.md)
-- **Clickable prototype:** [prototype/](prototype/)
+- **Build plan:** [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md)
+- **Clickable prototype:** [prototype/](prototype/) (locked at tag `prototype-v1`)
 
 ## Running the prototype
 
@@ -16,4 +17,4 @@ Then open http://localhost:5173. The prototype uses sample data and runs entirel
 
 ## Status
 
-PRD drafted; prototype ready for review. Build plan is next once design is settled.
+PRD v1.0 approved, prototype locked (`prototype-v1`), phased build plan drafted. Phase 0 (foundations) is next.
