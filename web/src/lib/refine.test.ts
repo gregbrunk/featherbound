@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Block } from './import/types';
-import { looksLikeNewEdition, nextFreeVersion, nextVersion, passageWindow, suggestedLevel } from './refine';
+import { alignOriginal, looksLikeNewEdition, nextFreeVersion, nextVersion, passageWindow, suggestedLevel } from './refine';
 
 describe('versions', () => {
   it('bumps semantic versions', () => {
@@ -25,6 +25,15 @@ describe('refinement helpers', () => {
     const b: Block[] = [{ type: 'p', html: 'a' }, { type: 'img', imageId: 'x', alt: '' }, { type: 'p', html: 'b' }, { type: 'p', html: 'c' }, { type: 'p', html: 'd' }];
     expect(passageWindow(b, 3, 1)).toEqual([2, 3, 4]);
     expect(passageWindow(b, 1, 1)).toEqual([]);
+  });
+  it('pairs original and adapted paragraphs in reading order around added pictures', () => {
+    const orig: Block[] = [{ type: 'p', html: 'one' }, { type: 'img', imageId: 'book', alt: '' }, { type: 'p', html: 'two' }];
+    const cur: Block[] = [{ type: 'p', html: 'One' }, { type: 'img', imageId: 'ill_1', alt: '' }, { type: 'p', html: 'Two' }, { type: 'img', imageId: 'ill_2', alt: '' }];
+    const aligned = alignOriginal(orig, cur)!;
+    expect(aligned).toHaveLength(4);
+    expect(aligned[0]).toEqual({ type: 'p', html: 'one' });
+    expect(aligned[2]).toEqual({ type: 'p', html: 'two' });
+    expect(alignOriginal([{ type: 'p', html: 'one' }], cur)).toBeNull();
   });
   it('spots requests that should be a new edition', () => {
     expect(looksLikeNewEdition('Make it for my 10 year old')).toBe(true);

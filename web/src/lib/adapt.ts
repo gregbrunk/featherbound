@@ -84,7 +84,7 @@ const chunkSchema = z.object({
   moments: z.array(z.object({
     paragraph: z.number().int().describe('The picture goes after this paragraph number'),
     scene: z.string().describe('What to draw, for an illustrator: who is where doing what, setting, mood. As adapted, gentle for this age.'),
-    characters: z.array(z.string()).describe('Named characters in the picture'),
+    characters: z.array(z.string()).describe('Named characters in the picture, spelled as in the Story Bible even if the text spells them differently'),
     alt: z.string().describe('A one-sentence caption for screen readers'),
   })).describe('Only when asked for picture moments; otherwise an empty list.'),
 });

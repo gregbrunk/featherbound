@@ -21,7 +21,7 @@ const STYLE_TEXT: Record<string, string> = {
 const researchSchema = z.object({
   look: z.string().describe('The look to use, e.g. "W. W. Denslow’s 1900 originals" or "Classic paperback cover art"'),
   options: z.array(z.object({ name: z.string(), note: z.string().describe('One sentence for the parent') })).describe('Other recognised looks for this book, if any; at most 4'),
-  style: z.string().describe('Drawing instructions in visual terms (line, color, shading, composition, era) that an illustrator could follow. Name the artist only if their work is in the public domain.'),
+  style: z.string().describe('How every picture is drawn, in visual terms only (line, color, shading, light, texture, era) that an illustrator could follow. Say nothing about who or what is in the pictures (no characters, places or groupings): each picture shows its own scene. Name the artist only if their work is in the public domain.'),
   palette: z.string().describe('A few named colors'),
   characters: z.array(z.object({
     name: z.string(),
@@ -100,6 +100,7 @@ Match the attached reference images' linework and colors. ${NO_LETTERING}`.trim(
 export function scenePrompt(settings: EditionSettings, art: Pick<ArtDirection, 'style' | 'palette'>, scene: string, cast: { name: string; description: string }[], note?: string | null) {
   return `${scene}
 ${cast.length ? `Characters (use the attached character sheets so each looks exactly the same):\n${cast.map((c) => `- ${c.name}: ${c.description}`).join('\n')}` : ''}
+Show only who this scene describes; leave out the book's other characters.
 ${styleLine(settings, art)}
 ${kidSafeLine(settings)}
 ${note ? `The parent asked: ${note}` : ''}

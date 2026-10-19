@@ -11,7 +11,7 @@ import { editionSettingsSchema } from '@/lib/editions';
 import type { Block } from '@/lib/import/types';
 import { getBook, listSections } from '@/lib/library';
 import { textCostUsd } from '@/lib/models';
-import { nextFreeVersion, passageWindow, refinePart, type RefineJob, type RefinePartResult } from '@/lib/refine';
+import { alignOriginal, nextFreeVersion, passageWindow, refinePart, type RefineJob, type RefinePartResult } from '@/lib/refine';
 import { checkOriginalPicture, researchLook, scenePrompt, sheetPrompt } from '@/lib/art';
 import { picturesForChapter } from '@/lib/estimate';
 import { forReading } from '@/lib/compress';
@@ -453,7 +453,8 @@ async function prepareRefine(userId: string, editionId: string, runId: string, s
   const section = chapters.find((s) => s.id === sectionId);
   if (!section || !chapter) throw new FatalError('That chapter is no longer in the book.');
   const [orig, cur] = await Promise.all([readJson<{ blocks: Block[] }>(section.textPath), readJson<{ blocks: Block[] }>(chapter.textPath)]);
-  if (orig.blocks.length !== cur.blocks.length) throw new FatalError('This chapter changed since it was adapted (was the book re-imported?), so it can’t be refined in place.');
+  const original = alignOriginal(orig.blocks, cur.blocks);
+  if (!original) throw new FatalError('This chapter changed since it was adapted (was the book re-imported?), so it can’t be refined in place.');
 
   const passage = spec.scope === 'passage' && spec.passage?.sectionId === sectionId ? spec.passage.index : null;
   const chunks = passage !== null ? [passageWindow(cur.blocks, passage)] : chunkIndexes(cur.blocks);
@@ -465,7 +466,7 @@ async function prepareRefine(userId: string, editionId: string, runId: string, s
       request: spec.guidance,
       chapterNumber: chapters.indexOf(section) + 1,
       title: section.title,
-      original: orig.blocks,
+      original,
       current: cur.blocks,
     },
     chunks: chunks.filter((c) => c.length),

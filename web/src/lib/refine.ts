@@ -81,6 +81,18 @@ Return exactly ${idx.length} paragraphs: the revised current adaptation.`;
   return { usage, part: { paragraphs, changeNotes: res.output.changeNotes.map((n) => ({ category: 'Your request', level: 'Refine' as const, note: n.note })) } };
 }
 
+/**
+ * The original's paragraphs, lined up with the adaptation's block indexes. Pictures added to
+ * (or removed from) the adaptation shift its indexes, so paragraphs pair up in reading order.
+ * Null when the paragraph counts differ: the book changed since this chapter was adapted.
+ */
+export function alignOriginal(original: Block[], current: Block[]): Block[] | null {
+  const text = original.filter((b) => 'html' in b);
+  if (text.length !== current.filter((b) => 'html' in b).length) return null;
+  let k = 0;
+  return current.map((b) => ('html' in b ? text[k++] : b));
+}
+
 /** Paragraph indexes a passage refinement shows the model: the chosen one with a little context. */
 export function passageWindow(blocks: Block[], index: number, around = 3) {
   const text = blocks.map((b, i) => ('html' in b ? i : -1)).filter((i) => i >= 0);

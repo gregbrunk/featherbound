@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildPdf, buildScannedPdf } from './fixtures/build';
-import { parsePdf } from './parse-pdf';
+import { mergeDropCaps, parsePdf, wordCounts, type RawItem } from './parse-pdf';
 import { blockText } from './sections';
 import type { ParsedBook, ParseResult } from './types';
 
@@ -53,5 +53,44 @@ describe('parsePdf', () => {
   it('reports corrupt PDFs', async () => {
     const bytes = new TextEncoder().encode('%PDF-1.7\nthis is not really a pdf');
     expect(await parsePdf(bytes, 'bad.pdf')).toMatchObject({ ok: false, reason: 'corrupt' });
+  });
+});
+
+describe('mergeDropCaps', () => {
+  // A two-line drop cap, laid out like the Beware of Chicken PDF: the cap sits on the second
+  // line's baseline and pushes the first two lines right.
+  const page = (cap: string, first: string, rest: RawItem[] = []): RawItem[] => [
+    { str: 'CHAPTER 1', x: 250, y: 625, width: 108, size: 19 },
+    { str: cap, x: 81, y: 476, width: 30, size: 44.5 },
+    { str: first, x: 115, y: 495, width: 360, size: 15 },
+    { str: 'repeating the request.', x: 115, y: 476.7, width: 400, size: 15 },
+    { str: 'trick was not being played.', x: 77, y: 458, width: 220, size: 15 },
+    ...rest,
+  ];
+  const words = wordCounts(['It was here. It is there, an old man and an owl.', 'I jolted, a warm wind, you and you.']);
+
+  it('joins the letter to the first line, not the line beside it', () => {
+    const out = mergeDropCaps(page('Y', 'ou wish to leave?'), words);
+    expect(out.map((i) => i.str)).toEqual(['CHAPTER 1', 'You wish to leave?', 'repeating the request.', 'trick was not being played.']);
+    expect(out.find((i) => i.str.startsWith('You'))!.x).toBe(81);
+    expect(out.find((i) => i.str.startsWith('repeating'))!.x).toBe(81);
+  });
+
+  it('spaces letters that are words only when the book says so', () => {
+    const first = (cap: string, line: string) => mergeDropCaps(page(cap, line), words).find((i) => i.y === 495)!.str;
+    expect(first('I', 't was the fourth day')).toBe('It was the fourth day');
+    expect(first('I', 'jolted awake')).toBe('I jolted awake');
+    expect(first('A', 'n old man sat')).toBe('An old man sat');
+    expect(first('A', 'warm wind blew')).toBe('A warm wind blew');
+  });
+
+  it('leaves later items on the first line in place', () => {
+    const out = mergeDropCaps(page('B', 'i De knew', [{ str: 'his Great', x: 128, y: 495, width: 60, size: 15 }]), words);
+    expect(out.find((i) => i.str === 'his Great')!.x).toBe(128);
+  });
+
+  it('leaves a big letter with no text beside it alone', () => {
+    const items: RawItem[] = [{ str: 'A', x: 300, y: 400, width: 30, size: 60 }, { str: 'Body text', x: 77, y: 300, width: 100, size: 15 }];
+    expect(mergeDropCaps(items, words)).toEqual(items);
   });
 });

@@ -29,7 +29,56 @@ export type PdfLine = {
   pageHeight: number;
 };
 
-type RawItem = { str: string; x: number; y: number; width: number; size: number };
+export type RawItem = { str: string; x: number; y: number; width: number; size: number };
+
+// --- Drop caps -----------------------------------------------------------------------------
+
+const DROP_CAP_RE = /^[“"‘']?\p{Lu}$/u;
+/** Letters that are also words, so "I" + "jolted" needs a space but "I" + "t was" doesn't. */
+const WORD_LETTERS = new Set(['A', 'I', 'O']);
+
+/** How often each lowercased word appears in the book, to tell "A warm" from "An old". */
+export function wordCounts(strs: string[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const s of strs) for (const w of s.toLowerCase().match(/\p{L}+/gu) ?? []) counts.set(w, (counts.get(w) ?? 0) + 1);
+  return counts;
+}
+
+/**
+ * Fold a chapter's big first letter back into its paragraph. Left alone it groups with the
+ * line it sits beside, and that big-font line reads as a chapter heading ("Y repeating the…").
+ */
+export function mergeDropCaps(items: RawItem[], words: Map<string, number>): RawItem[] {
+  const sizes = items.map((i) => i.size).sort((a, b) => a - b);
+  const typical = sizes[Math.floor(sizes.length / 2)] ?? 0;
+  const caps = items.filter((i) => DROP_CAP_RE.test(i.str.trim()) && i.size >= typical * 2);
+  if (!caps.length) return items;
+  const out = items.filter((i) => !caps.includes(i)).map((i) => ({ ...i }));
+  for (const cap of caps) {
+    const top = cap.y + cap.size * 0.8;
+    const near = out.filter((i) => i.size < cap.size / 1.5 && i.x > cap.x && i.y <= top && i.y >= cap.y - i.size * 0.5);
+    // The first item of each line beside the cap (later items on the line stay where they are).
+    const beside = near.filter((i) => i.x < cap.x + cap.width * 2.5 && !near.some((o) => o !== i && Math.abs(o.y - i.y) < 1 && o.x < i.x));
+    if (!beside.length) {
+      out.push(cap); // not a drop cap after all
+      continue;
+    }
+    const firstY = Math.max(...beside.map((i) => i.y));
+    const first = beside.filter((i) => i.y === firstY).sort((a, b) => a.x - b.x)[0];
+    const letter = cap.str.trim();
+    const bare = letter.replace(/^[“"‘']/, '');
+    const word = first.str.trimStart().match(/^\p{L}+/u)?.[0] ?? '';
+    const joined = !WORD_LETTERS.has(bare) || !word || (words.get((bare + word).toLowerCase()) ?? 0) > (words.get(word.toLowerCase()) ?? 0);
+    first.str = `${letter}${joined ? '' : ' '}${first.str.trimStart()}`;
+    // The lines beside the cap are pushed right by it; put them back on the margin so they
+    // don't read as indented new paragraphs.
+    for (const i of beside) {
+      i.width += i.x - cap.x;
+      i.x = cap.x;
+    }
+  }
+  return out;
+}
 
 /** Group a page's text items into lines (top to bottom, left to right). */
 function itemsToLines(items: RawItem[], page: number, pageBottom: number, pageHeight: number): PdfLine[] {
@@ -109,6 +158,15 @@ function median(values: number[]): number {
 
 const LABEL_RE = /^(?:chapter|book|part|prologue|epilogue|interlude)\b/i;
 const NUMBER_RE = /^(?:\d{1,3}|[IVXLCDM]{1,7})\.?$/;
+/** A label with only a number, waiting for its title: "Chapter 52", "Part IV". */
+const BARE_LABEL_RE = /^(?:chapter|book|part)\s+(?:\d{1,3}|[IVXLCDM]{1,7}|[a-z]+)\.?$/i;
+
+/** The title page often drops the subtitle: "BEWARE OF CHICKEN" for "Beware of Chicken: A Xianxia…". */
+function isBookTitle(text: string, bookTitle: string) {
+  const t = normalizeTitle(text);
+  const full = normalizeTitle(bookTitle);
+  return t === full || (t.length >= 4 && full.startsWith(`${t} `));
+}
 
 /** Turn cleaned lines into section drafts (one per detected heading). */
 export function linesToDrafts(lines: PdfLine[], bookTitle: string): { drafts: SectionDraft[]; headings: number } {
@@ -189,8 +247,14 @@ export function linesToDrafts(lines: PdfLine[], bookTitle: string): { drafts: Se
         title = j === i + 1 && heading !== 'big' ? `${title}${heading === 'number' ? '.' : ':'} ${next.text}` : `${title} ${next.text}`;
         j++;
       }
+      if (headings > 0 && heading === 'big' && !current.blocks.length && BARE_LABEL_RE.test(current.title)) {
+        // "CHAPTER 52" at the foot of one page, its title at the top of the next.
+        current.title = `${current.title}: ${title}`;
+        i = j - 1;
+        continue;
+      }
       drafts.push(current);
-      if (heading === 'big' && headings === 0 && normalizeTitle(l.text) === normalizeTitle(bookTitle)) {
+      if (heading === 'big' && headings === 0 && isBookTitle(l.text, bookTitle)) {
         // The book's own title on its title page.
         current = { title: 'Title page', blocks: [], kind: 'front' };
         titlePage = l.page;
@@ -257,7 +321,7 @@ export async function parsePdf(bytes: Uint8Array, fileName: string): Promise<Par
   }
 
   try {
-    const lines: PdfLine[] = [];
+    const pages: { items: RawItem[]; bottom: number; height: number }[] = [];
     let chars = 0;
     for (let p = 1; p <= doc.numPages; p++) {
       const page = await doc.getPage(p);
@@ -271,9 +335,11 @@ export async function parsePdf(bytes: Uint8Array, fileName: string): Promise<Par
         items.push({ str: it.str, x: t[4], y: t[5], width: it.width, size });
         chars += it.str.replace(/\s/g, '').length;
       }
-      lines.push(...itemsToLines(items, p, Math.min(y0, y1), Math.abs(y1 - y0) || 792));
+      pages.push({ items, bottom: Math.min(y0, y1), height: Math.abs(y1 - y0) || 792 });
       page.cleanup();
     }
+    const words = wordCounts(pages.flatMap((pg) => pg.items.map((i) => i.str)));
+    const lines = pages.flatMap((pg, k) => itemsToLines(mergeDropCaps(pg.items, words), k + 1, pg.bottom, pg.height));
 
     if (doc.numPages === 0) return { ok: false, reason: 'corrupt', detail: 'This PDF has no pages.' };
     if (chars / doc.numPages < 50) {
