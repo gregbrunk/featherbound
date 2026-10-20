@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Featherbound · Every book, a little softer</title>
+  <meta name="description" content="Featherbound turns the books your family already owns into gentler, full-length editions for your kids. Same story, same characters, same author's voice. Only what you choose to soften changes." />
+  <meta name="theme-color" content="#FBF4E4" />
+  <link rel="icon" href="/landing/assets/app-icon.svg" type="image/svg+xml" />
+  <meta property="og:title" content="Featherbound" />
+  <meta property="og:description" content="Your private family library, where every book is a little softer." />
+  <meta property="og:image" content="https://featherbound.ink/landing/assets/oz-sheet.jpg" />
+  <meta property="og:url" content="https://featherbound.ink/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="canonical" href="https://featherbound.ink/" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,400..700,0..100,0..1&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=Nunito:wght@400;600;700;800&display=swap" />
+  <link rel="stylesheet" href="/landing/styles.css" />
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="topbar">
+    <nav class="wrap nav" aria-label="Main">
+      <a class="brand" href="/" aria-label="Featherbound home">
+        <img src="/landing/assets/app-icon.svg" alt="" width="36" height="36" />
+        <span>Featherbound</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#pictures">Pictures</a></li>
+        <li><a href="#parents">For parents</a></li>
+        <li><a href="#costs">Costs</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+      <a class="btn btn-sm btn-ghost nav-signin" href="/sign-in">Sign in</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <!-- ======================= Hero ======================= -->
+    <section class="hero" id="top">
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="spark" aria-hidden="true">✦</span> Now in private beta</p>
+          <h1>The books you love, <em>ready for the readers you love.</em></h1>
+          <p class="lede">
+            Featherbound turns books your family already owns into gentler editions for your kids.
+            The plot, the characters, the author's voice and the full length all stay. Only what
+            <strong>you</strong> choose to soften changes.
+          </p>
+          <div class="cta-row">
+            <a class="btn btn-primary" href="https://github.com/gregbrunk/featherbound">Run your own library</a>
+            <a class="btn btn-ghost" href="#see-it">See a softened page</a>
+          </div>
+          <p class="fine">Free and open source. You bring your own AI key and pay only for what you use, usually a few dollars a book.</p>
+        </div>
+
+        <div class="hero-art" aria-hidden="true">
+          <div class="book book-back"></div>
+          <div class="book book-mid"></div>
+          <figure class="book book-front">
+            <img src="/landing/assets/oz-sheet.jpg" alt="" width="1400" height="934" />
+            <figcaption>
+              <span class="book-title">The Wonderful Wizard of Oz</span>
+              <span class="chip chip-plum">Age 6 · Read-aloud · Illustrated</span>
+            </figcaption>
+          </figure>
+          <img class="hero-tuft" src="/landing/assets/tuft.svg" alt="" width="170" height="187" />
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= Promise strip ======================= -->
+    <section class="promise" aria-label="What stays the same">
+      <ul class="wrap promise-list">
+        <li><span class="dot dot-plum"></span>Same story</li>
+        <li><span class="dot dot-gold"></span>Same characters</li>
+        <li><span class="dot dot-emerald"></span>Same author's voice</li>
+        <li><span class="dot dot-sapphire"></span>Every chapter, full length</li>
+      </ul>
+    </section>
+
+    <!-- ======================= Side by side ======================= -->
+    <section class="section" id="see-it">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">See it on the page</p>
+          <h2>Forty wolves, and nobody gets hurt.</h2>
+          <p class="section-lede">
+            Chapter 12 of <cite>The Wonderful Wizard of Oz</cite> is a lot for a five-year-old at bedtime.
+            Here is the original beside a read-aloud edition for age 6, with violence set to <em>Soften</em>.
+            Changed words are highlighted, just like in Featherbound's sample review.
+          </p>
+        </header>
+
+        <div class="compare" role="group" aria-label="Original and softened passage">
+          <div class="compare-tabs" role="tablist" aria-label="Choose a version">
+            <button role="tab" aria-selected="true" aria-controls="pane-original" id="tab-original" data-pane="original">Original</button>
+            <button role="tab" aria-selected="false" aria-controls="pane-soft" id="tab-soft" data-pane="soft" tabindex="-1">Age 6 edition</button>
+          </div>
+
+          <article class="page-card" id="pane-original" role="tabpanel" aria-labelledby="tab-original">
+            <header class="page-head">
+              <span class="chip">Original</span>
+              <span class="chip chip-ruby">Violence · intense</span>
+            </header>
+            <p>
+              “This is my fight,” said the Woodman, “so get behind me and I will meet them as they come.”
+            </p>
+            <p>
+              He seized his axe, which he had made very <del>sharp</del>, and as the leader of the wolves came on
+              the Tin Woodman <del>swung his arm and chopped the wolf’s head from its body, so that it
+              immediately died.</del> As soon as he could raise his axe another wolf came up, and <del>he also
+              fell under the sharp edge of the Tin Woodman’s weapon.</del> There were forty wolves, and forty
+              times <del>a wolf was killed, so that at last they all lay dead in a heap before the Woodman.</del>
+            </p>
+          </article>
+
+          <article class="page-card page-card-soft" id="pane-soft" role="tabpanel" aria-labelledby="tab-soft">
+            <header class="page-head">
+              <span class="chip chip-plum">Age 6 · Read-aloud</span>
+              <span class="chip chip-emerald">Violence · softened</span>
+            </header>
+            <p>
+              “This is my fight,” said the Woodman, “so get behind me and I will meet them as they come.”
+            </p>
+            <p>
+              He seized his axe, which he had made very <ins>shiny</ins>, and as the leader of the wolves came on
+              the Tin Woodman <ins>swung it against a stone with a tremendous CLANG! The wolf tumbled head over
+              tail and ran yelping back the way it had come.</ins> As soon as he could raise his axe another
+              wolf came up, and <ins>CLANG! went the axe again.</ins> There were forty wolves, and forty
+              times <ins>the axe rang out, so that at last every one of them had scampered off over the hill.</ins>
+            </p>
+            <figure class="page-pic">
+              <img src="/landing/assets/oz-wolves.jpg" alt="Dorothy, Toto and the Lion sleep in the grass while the Tin Woodman grins beside a CLANG! and the wolves tumble away over the hill under a crescent moon." width="1400" height="1120" loading="lazy" />
+            </figure>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= How it works ======================= -->
+    <section class="section section-tint" id="how">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">How it works</p>
+          <h2>From your bookshelf to their bedtime in five steps.</h2>
+        </header>
+
+        <ol class="steps">
+          <li class="step">
+            <span class="step-num">1</span>
+            <h3>Import a book you own</h3>
+            <p>Drop in a DRM-free EPUB or PDF. Featherbound finds the chapters, cover, series and genre, and you check them before it goes on the shelf.</p>
+          </li>
+          <li class="step">
+            <span class="step-num">2</span>
+            <h3>See what's inside</h3>
+            <p>A chapter-by-chapter content report across nine categories, plus a Story Bible of the characters, places and plot threads.</p>
+          </li>
+          <li class="step">
+            <span class="step-num">3</span>
+            <h3>Choose your settings</h3>
+            <p>A short wizard: the reader's age, read-aloud or independent, and keep, soften or remove for each kind of content. Add notes in your own words.</p>
+          </li>
+          <li class="step">
+            <span class="step-num">4</span>
+            <h3>Review two sample chapters</h3>
+            <p>The first chapter and the most intense one, side by side with the original. Highlight anything and comment until it reads right.</p>
+          </li>
+          <li class="step">
+            <span class="step-num">5</span>
+            <h3>Get the whole book</h3>
+            <p>Featherbound writes every chapter, paragraph for paragraph, then checks the whole book for consistency. Read it in the app or export it.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ======================= Content report ======================= -->
+    <section class="section" id="report">
+      <div class="wrap split">
+        <div class="split-copy">
+          <p class="eyebrow">What's inside</p>
+          <h2>Know a book before your child does.</h2>
+          <p>
+            Before you change anything, Featherbound reads the book through and tells you what's in it, chapter
+            by chapter. Then you decide, category by category, what to keep, what to soften and what to take out.
+          </p>
+          <p class="muted">
+            The categories follow the ones Common Sense Media uses. Each starts from a sensible default for
+            your reader's age, and you can change any of them.
+          </p>
+        </div>
+
+        <div class="filters card" aria-label="Example content settings for age 6">
+          <div class="filters-head">
+            <strong>Content settings</strong>
+            <span class="chip chip-plum">Age 6</span>
+          </div>
+          <ul>
+            <li><span>Language</span><span class="seg"><b class="on-remove">Remove</b></span></li>
+            <li><span>Violence &amp; gore</span><span class="seg"><b class="on-soften">Soften</b></span></li>
+            <li><span>Scariness &amp; peril</span><span class="seg"><b class="on-soften">Soften</b></span></li>
+            <li><span>Death &amp; grief</span><span class="seg"><b class="on-soften">Soften</b></span></li>
+            <li><span>Romance</span><span class="seg"><b class="on-keep">Keep</b></span></li>
+            <li><span>Substances</span><span class="seg"><b class="on-remove">Remove</b></span></li>
+            <li><span>Mature themes</span><span class="seg"><b class="on-soften">Soften</b></span></li>
+            <li><span>Meanness &amp; bullying</span><span class="seg"><b class="on-soften">Soften</b></span></li>
+            <li><span>Crude humor</span><span class="seg"><b class="on-keep">Keep</b></span></li>
+          </ul>
+          <p class="filters-note">Some families want <em>more</em> crude humor for little kids. That's allowed.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= Pictures ======================= -->
+    <section class="section section-plum" id="pictures">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow eyebrow-gold">Picture Book mode</p>
+          <h2>Pictures drawn in the book's own style.</h2>
+          <p class="section-lede">
+            Turn on pictures and Featherbound studies how the book already looks: its original illustrations,
+            its cover, or how an earlier book in the series was drawn. Then it draws new pictures to match, as
+            often as you like.
+          </p>
+        </header>
+
+        <div class="pics">
+          <figure class="pic pic-wide">
+            <img src="/landing/assets/oz-sheet.jpg" alt="Character sheet in a classic pen-and-ink style: Dorothy in a red dress with braids, Toto, the Tin Woodman with his axe, the Scarecrow in green, and the Cowardly Lion." width="1400" height="934" loading="lazy" />
+            <figcaption>
+              <strong>A character sheet first.</strong>
+              You approve how each main character looks before a single scene is drawn, so Dorothy is the same
+              Dorothy on page 4 and page 240.
+            </figcaption>
+          </figure>
+          <ul class="pic-points">
+            <li>
+              <h3>Moments chosen as the text is written</h3>
+              <p>Pick a density, from one picture a chapter to one every few pages, and see the cost before you start.</p>
+            </li>
+            <li>
+              <h3>Too-scary originals, redrawn</h3>
+              <p>If one of the book's own pictures is too intense for the edition, it's redrawn to match the softened text.</p>
+            </li>
+            <li>
+              <h3>Yours to change</h3>
+              <p>Redraw a picture, upload your own, or remove it. Each change is saved as a new version.</p>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= For parents ======================= -->
+    <section class="section" id="parents">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">For parents</p>
+          <h2>Made for the grown-up holding the book.</h2>
+        </header>
+
+        <div class="bento">
+          <article class="tile tile-handoff">
+            <div class="tile-icon" aria-hidden="true">🔒</div>
+            <h3>Hand-off mode</h3>
+            <p>
+              Lock a phone or tablet to one edition and hand it over. Unlocking means pressing and holding Tuft,
+              then entering your PIN. The lock is enforced on the server and survives the app being closed.
+            </p>
+            <div class="pin" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+          </article>
+          <article class="tile">
+            <div class="tile-icon" aria-hidden="true">🪶</div>
+            <h3>Refine any time</h3>
+            <p>Ask for a change to the whole book, a few chapters or one passage. Every change is a new version you can compare and roll back.</p>
+          </article>
+          <article class="tile">
+            <div class="tile-icon" aria-hidden="true">📖</div>
+            <h3>A reader they'll open</h3>
+            <p>Page turns, two-page spreads, themes and dyslexia-friendly fonts, with progress synced across devices. Or export an EPUB for e-readers, or a 6 × 9 inch PDF to print.</p>
+          </article>
+          <article class="tile">
+            <div class="tile-icon" aria-hidden="true">🧾</div>
+            <h3>No cost surprises</h3>
+            <p>An estimate before every run, a cost cap that pauses at the end of a chapter, and a monthly budget dashboard.</p>
+          </article>
+          <article class="tile">
+            <div class="tile-icon" aria-hidden="true">📚</div>
+            <h3>Grows with your kids</h3>
+            <p>Make an edition for age 6 now and another for age 9 later. Each one shows the settings it was made with.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= Costs ======================= -->
+    <section class="section section-tint" id="costs">
+      <div class="wrap split split-reverse">
+        <div class="split-copy">
+          <p class="eyebrow">Costs</p>
+          <h2>Pennies a chapter, on your own key.</h2>
+          <p>
+            Featherbound doesn't charge anything. You add your own AI key in Settings and pay the providers'
+            list prices directly. Keys are encrypted and never sent to the browser.
+          </p>
+          <p class="muted">
+            Figures are from real runs on a 39,000-word book with Claude Opus 5.5. Every run shows its estimate
+            first and stops at the cap you set.
+          </p>
+        </div>
+
+        <div class="card costs">
+          <table>
+            <thead>
+              <tr><th scope="col">What</th><th scope="col">Cost</th><th scope="col">Time</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">Content report</th><td>~$0.85</td><td>~2 min</td></tr>
+              <tr><th scope="row">Two sample chapters</th><td>~$0.40</td><td>~2 min</td></tr>
+              <tr><th scope="row">Full book, text only</th><td>~$3</td><td>~8 min</td></tr>
+              <tr><th scope="row">Full book, 24 pictures</th><td>~$5</td><td>~15 min</td></tr>
+              <tr><th scope="row">Refining one passage</th><td>~$0.05</td><td>&lt; 1 min</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= FAQ ======================= -->
+    <section class="section" id="faq">
+      <div class="wrap wrap-narrow">
+        <header class="section-head">
+          <p class="eyebrow">Questions</p>
+          <h2>Good questions, honest answers.</h2>
+        </header>
+
+        <div class="faq">
+          <details>
+            <summary>Does it shorten the book or change what happens?</summary>
+            <p>No. Editions are always full length, paragraph for paragraph. Events can be softened or moved off the page, but what happens in the story never changes, and a consistency check across the whole book rewrites any chapter that drifts.</p>
+          </details>
+          <details>
+            <summary>Which books can I use?</summary>
+            <p>Books you own, as DRM-free EPUB or PDF files. Featherbound doesn't remove DRM, and if a file is locked it tells you so kindly. You're responsible for having the right to any book you import.</p>
+          </details>
+          <details>
+            <summary>Can I share the editions I make?</summary>
+            <p>No. Editions are private copies for your own family. There's no public sharing, and nothing is shared between accounts: each library, key and setting is its own.</p>
+          </details>
+          <details>
+            <summary>Do my kids need accounts?</summary>
+            <p>No. Kids never sign in, and Featherbound keeps no record of them. You read to them, or hand them a device locked to one edition with Hand-off mode.</p>
+          </details>
+          <details>
+            <summary>Should I still read it first?</summary>
+            <p>Yes. Adaptations are written by AI. The checks keep the plot and characters intact, but a parent should still read what their child will read. That's exactly what sample review is for.</p>
+          </details>
+          <details>
+            <summary>How do I get access?</summary>
+            <p>Featherbound is in a small, invite-only beta. It's also MIT-licensed, so you can run your own copy on Vercel today. The README walks you through setup.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= Final CTA ======================= -->
+    <section class="final">
+      <div class="wrap final-inner">
+        <img src="/landing/assets/tuft.svg" alt="Tuft, the Featherbound mascot: a fluffy white bird in a too-big wizard hat" width="150" height="165" />
+        <h2>Tuft is ready when you are.</h2>
+        <p>Bring a book you love. Leave with one they're ready for.</p>
+        <div class="cta-row cta-center">
+          <a class="btn btn-primary" href="https://github.com/gregbrunk/featherbound">Run your own library</a>
+          <a class="btn btn-ghost" href="/sign-in">Sign in to the beta</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <a class="brand brand-sm" href="#top">
+        <img src="/landing/assets/app-icon.svg" alt="" width="28" height="28" />
+        <span>Featherbound</span>
+      </a>
+      <p>For personal, private use with books you own. Open source under the MIT license.</p>
+      <p class="footer-small">
+        Sample text and pictures are from <cite>The Wonderful Wizard of Oz</cite> (L. Frank Baum, 1900), which is in the public domain.
+        Pictures were drawn by Featherbound in the style of W. W. Denslow.
+      </p>
+      <p class="footer-small">Made with care by Greg Brunk and Tuft.</p>
+    </div>
+  </footer>
+
+  <script>
+    // Tabs for the original vs softened comparison (only visible on narrow screens).
+    (function () {
+      var tabs = Array.prototype.slice.call(document.querySelectorAll('.compare-tabs [role="tab"]'));
+      function select(tab) {
+        tabs.forEach(function (t) {
+          var on = t === tab;
+          t.setAttribute('aria-selected', String(on));
+          t.tabIndex = on ? 0 : -1;
+          document.getElementById(t.getAttribute('aria-controls')).classList.toggle('is-active', on);
+        });
+      }
+      tabs.forEach(function (tab, i) {
+        tab.addEventListener('click', function () { select(tab); });
+        tab.addEventListener('keydown', function (e) {
+          if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+          var next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+          select(next);
+          next.focus();
+        });
+      });
+      select(tabs[0]);
+    })();
+  </script>
+  <script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

@@ -23,6 +23,17 @@
         "spikes/illustration-bakeoff/serve.mjs"
       ],
       "port": 4178
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "web",
+        "run",
+        "dev"
+      ],
+      "port": 3000
     }
   ]
 }
