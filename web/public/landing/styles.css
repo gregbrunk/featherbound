@@ -436,10 +436,18 @@ cite { font-style: italic; }
 .footer-small { font-size: 13.5px; color: var(--ink-faint); }
 .pin { display: flex; gap: 14px; margin-top: auto; padding-top: 28px; }
 .pin span {
-  width: 18px; height: 18px; border-radius: 50%;
+  display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
   background: var(--plum); box-shadow: 0 0 0 5px var(--plum-soft);
+  color: #fff; font: 800 22px/1 var(--font-ui);
 }
-.pin span:last-child { background: transparent; box-shadow: inset 0 0 0 2px var(--plum), 0 0 0 5px var(--plum-soft); }
+.pin span::before { content: '*'; transform: translateY(4px); }
+.pin span:last-child { background: var(--paper); box-shadow: inset 0 0 0 2px var(--plum), 0 0 0 5px var(--plum-soft); }
+.pin span:last-child::before {
+  content: ''; width: 2px; height: 16px; border-radius: 1px; transform: none;
+  background: var(--plum); animation: caret 1.1s steps(1) infinite;
+}
+@keyframes caret { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .pin span:last-child::before { animation: none; } }
 
 /* ---------- Product tour ---------- */
 
