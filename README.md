@@ -20,7 +20,7 @@ Featherbound turns books a family already owns into gentler editions for their k
 
 A parent imports a DRM-free EPUB or PDF. Featherbound reads it through and reports what's in each chapter. The parent picks settings in a short wizard and reviews two sample chapters side by side with the original. Then Featherbound writes the whole book. Illustrated editions can add pictures drawn in the style of the book's own art, with characters that look the same on every page.
 
-> **Status: public beta.** Featherbound runs privately for one family, behind a Google sign-in allow list. Each account brings its own AI keys and pays its own AI costs.
+> **Status: closed beta.** Featherbound runs privately for one family, behind a Google sign-in allow list. Each account brings its own AI keys and pays its own AI costs.
 
 ## Contents
 

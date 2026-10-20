@@ -9,7 +9,7 @@ export default function PrivatePage() {
       <div className="gate-card">
         <Tuft pose="guard" size={140} />
         <h1 className="gate-title" style={{ fontSize: 34 }}>This library is private</h1>
-        <p className="muted">That Google account isn’t on Featherbound’s approved list. If you think it should be, ask the admin to add you.</p>
+        <p className="muted">That Google account hasn’t been invited. Featherbound is in a closed beta, and we aren’t taking invite requests right now.</p>
         <SignOutButton />
       </div>
     </main>

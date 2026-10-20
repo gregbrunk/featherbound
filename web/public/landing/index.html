@@ -28,6 +28,7 @@
         <span>Featherbound</span>
       </a>
       <ul class="nav-links">
+        <li><a href="#tour">Tour</a></li>
         <li><a href="#how">How it works</a></li>
         <li><a href="#pictures">Pictures</a></li>
         <li><a href="#parents">For parents</a></li>
@@ -43,8 +44,8 @@
     <section class="hero" id="top">
       <div class="wrap hero-grid">
         <div class="hero-copy">
-          <p class="eyebrow"><span class="spark" aria-hidden="true">✦</span> Now in private beta</p>
-          <h1>The books you love, <em>ready for the readers you love.</em></h1>
+          <p class="eyebrow"><span class="spark" aria-hidden="true">✦</span> Now in closed beta</p>
+          <h1>The books you love, <em>ready for your young readers.</em></h1>
           <p class="lede">
             Featherbound turns books your family already owns into gentler editions for your kids.
             The plot, the characters, the author's voice and the full length all stay. Only what
@@ -52,7 +53,7 @@
           </p>
           <div class="cta-row">
             <a class="btn btn-primary" href="https://github.com/gregbrunk/featherbound">Run your own library</a>
-            <a class="btn btn-ghost" href="#see-it">See a softened page</a>
+            <a class="btn btn-ghost" href="#tour">Watch the tour</a>
           </div>
           <p class="fine">Free and open source. You bring your own AI key and pay only for what you use, usually a few dollars a book.</p>
         </div>
@@ -80,6 +81,46 @@
         <li><span class="dot dot-emerald"></span>Same author's voice</li>
         <li><span class="dot dot-sapphire"></span>Every chapter, full length</li>
       </ul>
+    </section>
+
+    <!-- ======================= Product tour ======================= -->
+    <section class="section tour-section" id="tour" aria-labelledby="tour-title">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">See it in action</p>
+          <h2 id="tour-title">A real app, not a mock-up.</h2>
+          <p class="section-lede">
+            Every screen here is captured from Featherbound itself: a real library with a real illustrated
+            edition of <cite>The Wonderful Wizard of Oz</cite>. Follow along from the first look at a book to
+            handing it to a young reader.
+          </p>
+        </header>
+
+        <div class="tour">
+          <div class="tour-frame">
+            <div class="tour-bar">
+              <span class="tour-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="tour-url">featherbound.ink</span>
+              <button class="tour-toggle" type="button" aria-pressed="false" aria-label="Pause the tour">
+                <svg class="icon-pause" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></svg>
+                <svg class="icon-play" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5l12 7-12 7z" fill="currentColor"/></svg>
+              </button>
+            </div>
+            <div class="tour-viewport">
+              <iframe src="/landing/tour/index.html" title="Featherbound tour: the library, content report, Story Bible, edition settings, sample review, reader and Hand-off mode" tabindex="-1" loading="lazy"></iframe>
+            </div>
+          </div>
+          <ol class="tour-steps" aria-label="Jump to a part of the tour">
+            <li><button type="button" data-step="0">Your library</button></li>
+            <li><button type="button" data-step="1">What’s inside</button></li>
+            <li><button type="button" data-step="2">Story Bible</button></li>
+            <li><button type="button" data-step="3">Choose settings</button></li>
+            <li><button type="button" data-step="4">Sample review</button></li>
+            <li><button type="button" data-step="5">The whole book</button></li>
+            <li><button type="button" data-step="6">Hand-off mode</button></li>
+          </ol>
+        </div>
+      </div>
     </section>
 
     <!-- ======================= Side by side ======================= -->
@@ -362,7 +403,7 @@
           </details>
           <details>
             <summary>How do I get access?</summary>
-            <p>Featherbound is in a small, invite-only beta. It's also MIT-licensed, so you can run your own copy on Vercel today. The README walks you through setup.</p>
+            <p>Featherbound is in a closed beta: only invited accounts can sign in, and we aren't taking invite requests right now. It's also MIT-licensed, so you can run your own copy on Vercel today. The README walks you through setup.</p>
           </details>
         </div>
       </div>
@@ -419,6 +460,48 @@
         });
       });
       select(tabs[0]);
+    })();
+  </script>
+  <script>
+    // Product tour: scale the 1280 × 800 tour page to fit, play it only while it's on screen,
+    // and keep the chapter buttons in step with it.
+    (function () {
+      var root = document.querySelector('.tour');
+      if (!root) return;
+      var frame = root.querySelector('iframe');
+      var viewport = root.querySelector('.tour-viewport');
+      var toggle = root.querySelector('.tour-toggle');
+      var steps = Array.prototype.slice.call(root.querySelectorAll('[data-step]'));
+      var visible = false, userPaused = false;
+
+      function fit() { frame.style.transform = 'scale(' + viewport.clientWidth / 1280 + ')'; }
+      fit();
+      if (window.ResizeObserver) new ResizeObserver(fit).observe(viewport); else window.addEventListener('resize', fit);
+
+      function send(msg) { if (frame.contentWindow) frame.contentWindow.postMessage(msg, location.origin); }
+      function sync() { send({ featherboundTour: visible && !userPaused ? 'play' : 'pause' }); }
+      frame.addEventListener('load', sync);
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (entries) { visible = entries[0].isIntersecting; sync(); }, { threshold: 0.35 }).observe(viewport);
+      } else { visible = true; }
+
+      toggle.addEventListener('click', function () {
+        userPaused = !userPaused;
+        toggle.setAttribute('aria-pressed', String(userPaused));
+        toggle.setAttribute('aria-label', userPaused ? 'Play the tour' : 'Pause the tour');
+        sync();
+      });
+      steps.forEach(function (b) {
+        b.addEventListener('click', function () {
+          userPaused = false; toggle.setAttribute('aria-pressed', 'false'); toggle.setAttribute('aria-label', 'Pause the tour');
+          send({ featherboundTour: 'go', index: Number(b.dataset.step) });
+          sync();
+        });
+      });
+      window.addEventListener('message', function (e) {
+        if (e.source !== frame.contentWindow || !e.data || e.data.featherboundTour !== 'step') return;
+        steps.forEach(function (b, i) { b.toggleAttribute('aria-current', i === e.data.index); });
+      });
     })();
   </script>
   <script defer src="/_vercel/insights/script.js"></script>
